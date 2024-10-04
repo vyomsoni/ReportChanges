@@ -7,9 +7,7 @@ global without sharing class WhatsAppWebhook {
     @HttpGet // GET
     global static void doGet() {
         RestResponse response = RestContext.response;
-        System.debug('Response ==>' + response);
         RestRequest request = RestContext.request;
-        System.debug('request ==>' + request);
         if(request.params.get('hub.verify_token') == 'WHATSAPPTOKEN'){
             response.responseBody = Blob.valueOf( request.params.get('hub.challenge') );
         }
@@ -17,18 +15,14 @@ global without sharing class WhatsAppWebhook {
 
     @HttpPost
     global static void doPost() {
-        System.debug('InDoPost Method'+RestContext.request.headers.get('hub.verify_token'));
-        System.debug('InDoPost Method2 '+RestContext.request.params.get('hub.verify_token'));
-            // Verify Token (Replace with your Verify Token)
+        // Verify Token (Replace with your Verify Token)
         String verifyToken = '7fa1634d4f849b8ced3a249ec4ce8bb7db4d8046';
         if (RestContext.request.headers.get('hub.verify_token') != verifyToken) {
             System.debug('InDoPost Method If condition');
             RestContext.response.statusCode = 403;
         }
         // Get WhatsApp's raw JSON data
-        System.debug('InDoPost Method before Payload');
         String jsonString = RestContext.request.requestBody.toString();
-        System.debug('InDoPost Method after payload:- '+jsonString);
         try {
             processWhatsAppPayload(jsonString);
         } catch (Exception e) {
@@ -38,19 +32,8 @@ global without sharing class WhatsAppWebhook {
 
     private static void processWhatsAppPayload(String jsonString) {
         try {
-            System.debug('jsonString: ' + jsonString);
             List<WhatsAppMessage> parsedMessages = parseMessages(jsonString);
-            
-            for (WhatsAppMessage message : parsedMessages) {
-                System.debug('Profile Name: ' + message.profileName);
-                System.debug('Timestamp: ' + message.timestamp);
-                System.debug('Text Body: ' + message.textBody);
-                System.debug('Text Type: ' + message.textType);
-                System.debug('Whatsapp Id: ' + message.WAMId);
-            }
             Map<String, Object> payload = (Map<String, Object>) JSON.deserializeUntyped(jsonString);
-            System.debug('payload: ' + payload);
-    
             List<Object> listofmessages = (List<Object>) payload.get('entry');
             for (Object messageobj : listofmessages) {
                 Map<String, Object> messageMap = (Map<String, Object>) messageobj;
@@ -62,9 +45,7 @@ global without sharing class WhatsAppWebhook {
                         Map<String, Object> metadata = (Map<String, Object>) value.get('metadata');
                         // Extract the phone_number_id
                         phoneNumberId = (String) metadata.get('phone_number_id');
-                        System.debug('phonenumberid -- ' + phoneNumberId);
                         List<Object> messages = (List<Object>) value.get('messages');
-                        System.debug('messages ==> ' + messages);
                         processWhatsAppMessages(messages);
                     }
                 }
@@ -78,7 +59,6 @@ global without sharing class WhatsAppWebhook {
 
     private static void processWhatsAppMessages(List<Object> messages) {
         try {
-            System.debug('messages2 ==>' + messages);
             if (messages != null) {
                 for (Object messageObj : messages) {
                     Map<String, Object> message = (Map<String, Object>) messageObj;
@@ -104,10 +84,6 @@ global without sharing class WhatsAppWebhook {
         Integer offsetMinutes = Math.abs(offsetMillis / (1000 * 60) - offsetHours * 60);
         DateTime currentISTDateTime = currentUTCDateTime.addHours(offsetHours).addMinutes(offsetMinutes);
         String formattedTime2 = currentISTDateTime.format('h:mm a');
-        System.debug(formattedTime2);
-        System.debug('whatsAppMessageID ==> ' + whatsAppMessageID);
-        System.debug('senderId ==> ' + senderId);
-        System.debug('messageType ==> ' + messageType);
 
         // Query to check if the message has already been processed
         List<WhatsApp_Chat__c> existingChatRecords = [SELECT Id FROM WhatsApp_Chat__c WHERE WhatsAppMessageID__c = :whatsAppMessageID LIMIT 1 WITH SECURITY_ENFORCED ];
@@ -122,27 +98,21 @@ global without sharing class WhatsAppWebhook {
             String contextId = '';
             if(context != null){
                 contextId = (String) context.get('id');
-                System.debug('Context ID ==> ' + contextId);
             }
             String messageBody = (String) text.get('body');
-            System.debug('senderId ==> ' + senderId);
             senderId = '+' + senderId;
-            System.debug('senderId ==> ' + senderId);
             String formattedNumber = senderId.substring(0, 3) + senderId.substring(3);
-            System.debug('formattedNumber ==> ' + formattedNumber);
             
             DateTime myDateTime = DateTime.now();
             String formattedDate = myDateTime.format(' d MMM yyyy');
             Contact contact;
             try {
                 List<Contact> contacts = [SELECT Id, Name,WhatsApp_Phone__c,MobilePhone,OwnerId, User_Consent_Received__c FROM Contact WHERE WhatsApp_Phone__c = :formattedNumber LIMIT 1 WITH SECURITY_ENFORCED ];
-                System.debug('contacts ==> ' + contacts);
                 if (contacts.size() > 0) {
                     contact = contacts[0];
                     List<WhatsApp_Chat__c> chatRecordsWp = [SELECT Id,ContactId__c,WhatsAppMessageID__c FROM WhatsApp_Chat__c WHERE WhatsAppMessageID__c = :whatsAppMessageID ORDER BY CreatedDate DESC WITH SECURITY_ENFORCED ];
                     List<WhatsApp_Chat__c> deletedChatRecordsWp = [SELECT Id,ContactId__c,WhatsAppMessageID__c FROM WhatsApp_Chat__c WHERE WhatsAppMessageID__c = :whatsAppMessageID AND IsDeleted = true ORDER BY CreatedDate DESC WITH SECURITY_ENFORCED ];
 
-                    System.debug('chatRecordsWp ==> ' + chatRecordsWp);
                     if(chatRecordsWp.isEmpty() && deletedChatRecordsWp.isEmpty()){
                         WhatsApp_Chat__c whatsappChat = new WhatsApp_Chat__c();
                         whatsappChat.ContactId__c = contact.Id;
@@ -169,18 +139,14 @@ global without sharing class WhatsAppWebhook {
                         );
                         insert whatsappChat;
                         updateContactUserConsent(contact);
-                        // WhatsAppBot.sendAutomatedMessage(contact, formattedTime2, messageBody, whatsappChat);
                         EventBus.publish(chatevent);
-                        System.debug('WhatsApp_Chat__c record created: ' + whatsappChat.Id);
-                         // Send push notification
-                         sendNotificationForContact(contact);
+                        sendNotificationForContact(contact);
                     }
                 }
                 else{
                     System.debug('Unable to get contact to send message.');
                 }
             } catch (Exception e) {
-                // ExceptionLog.exception(e.getMessage(), 'WhatsAppWebhook', 'processSingleMessage',currentTime);
                 System.debug('Error in processSingleMessage: ' + e.getMessage() + '\n' + e + '\n Exception line no: ' + e.getLineNumber());
             }
         } 
@@ -199,7 +165,6 @@ global without sharing class WhatsAppWebhook {
                     String formattedDate = myDateTime.format(' d MMM yyyy');
                     Contact contacts = [SELECT Id, Name, WhatsApp_Phone__c,OwnerId FROM Contact WHERE WhatsApp_Phone__c = :formattedNumber WITH SECURITY_ENFORCED ];
                     saveMediaToSalesforce(documentBody, filename, mimeType,messageType,whatsAppMessageID,formattedTime2,formattedDate,senderId, contacts.Id);
-                  
                 }
             } catch (Exception e) {
                 // ExceptionLog.exception(e.getMessage(), 'WhatsAppWebhook', 'processSingleMessage',currentTime);
@@ -292,29 +257,20 @@ global without sharing class WhatsAppWebhook {
             String contextId = '';
             if(context != null){
                 contextId = (String) context.get('id');
-                System.debug('Context ID ==> ' + contextId);
             }
-            System.debug('Button Payload ==> ' + payload);
-            System.debug('Button Text ==> ' + text);
-
-            System.debug('senderId ==> ' + senderId);
             senderId = '+' + senderId;
-            System.debug('senderId ==> ' + senderId);
             String formattedNumber = senderId.substring(0, 3) + senderId.substring(3);
-            System.debug('formattedNumber ==> ' + formattedNumber);
             
             DateTime myDateTime = DateTime.now();
             String formattedDate = myDateTime.format(' d MMM yyyy');
             Contact contact;
             try {
                 List<Contact> contacts = [SELECT Id, Name,WhatsApp_Phone__c,OwnerId, User_Consent_Received__c FROM Contact WHERE WhatsApp_Phone__c = :formattedNumber LIMIT 1 WITH SECURITY_ENFORCED ];
-                System.debug('contacts ==> ' + contacts);
                 if (contacts.size() > 0) {
                     contact = contacts[0];
                     List<WhatsApp_Chat__c> chatRecordsWp = [SELECT Id,ContactId__c,WhatsAppMessageID__c FROM WhatsApp_Chat__c WHERE WhatsAppMessageID__c = :whatsAppMessageID  ORDER BY CreatedDate DESC WITH SECURITY_ENFORCED ];
                     List<WhatsApp_Chat__c> deletedChatRecordsWp = [SELECT Id,ContactId__c,WhatsAppMessageID__c FROM WhatsApp_Chat__c WHERE WhatsAppMessageID__c = :whatsAppMessageID AND IsDeleted = true ORDER BY CreatedDate DESC WITH SECURITY_ENFORCED ];
 
-                    System.debug('chatRecordsWp ==> ' + chatRecordsWp);
                     if(chatRecordsWp.isEmpty() && deletedChatRecordsWp.isEmpty()){
                         WhatsApp_Chat__c whatsappChat = new WhatsApp_Chat__c();
                         whatsappChat.ContactId__c = contact.Id;
@@ -342,9 +298,7 @@ global without sharing class WhatsAppWebhook {
                         );
                         insert whatsappChat;
                         updateContactUserConsent(contact);
-                        // WhatsAppBot.sendAutomatedMessage(contact, formattedTime2, text, whatsappChat);
                         EventBus.publish(chatevent);
-                        System.debug('WhatsApp_Chat__c record created: ' + whatsappChat.Id);
                          // Send push notification
                          sendNotificationForContact(contact);
                     }
@@ -356,9 +310,7 @@ global without sharing class WhatsAppWebhook {
                 // ExceptionLog.exception(e.getMessage(), 'WhatsAppWebhook', 'processSingleMessage',currentTime);
                 System.debug('Error in processSingleMessage: ' + e.getMessage() + '\n' + e + '\n Exception line no: ' + e.getLineNumber());
             }
-        
         }
-        
         else if (messageType != null) {
             System.debug('Unsupported message type: ' + messageType);
         }
@@ -529,8 +481,6 @@ global without sharing class WhatsAppWebhook {
     public static void sendNotificationForContact(Contact con) {
         try {
             CustomNotificationType cnType = [SELECT Id FROM CustomNotificationType WHERE DeveloperName = 'WhatsappNotification' WITH SECURITY_ENFORCED];
-            System.debug('custom notification===> '+cnType);
-            
             // Id userId = Userinfo.getUserId();
             String messageContent = con.Name+' has sent a new message. Tap to view.';
             System.debug('messageContent==> '+messageContent);
@@ -544,7 +494,6 @@ global without sharing class WhatsAppWebhook {
             // customNotificationObj.setSenderId(userId); 
             customNotificationObj.setTargetId(con.Id); 
             customNotificationObj.send(addressee);
-
         } catch (Exception e) {
             // ExceptionLog.exception(e.getMessage(), 'WhatsAppWebhook', 'sendNotificationForContact',currentTime);
             System.debug('Error in sendNotificationForContact: ' + e.getMessage() + '\n' + e + '\n Exception line no: ' + e.getLineNumber());
@@ -759,16 +708,12 @@ global without sharing class WhatsAppWebhook {
             HttpResponse response = http1.send(request);
 
         }
-
-
-
         } catch (Exception e) {
             System.debug('Exception in sendEmailViaGmailAPI :: ' + e.getMessage());
         }
     }
 
     public static void updateContactUserConsent(Contact con){
-        System.debug('con.MVEX__User_Consent_Received__c' + con.MVEX__User_Consent_Received__c);
         if(con.MVEX__User_Consent_Received__c == false){
             con.MVEX__User_Consent_Received__c = true;
             update con;
