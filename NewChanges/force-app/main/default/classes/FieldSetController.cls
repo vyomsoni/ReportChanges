@@ -1,9 +1,9 @@
-global with sharing class FieldSetController {
+public with sharing class FieldSetController {
     @AuraEnabled
     public static FieldSetForm getForm(Id recordId, String objectName, String fieldSetName) {
         System.debug('hi');
         FieldSetForm form = new FieldSetForm();        
-        form.Fields = getFields(recordId, objectName, fieldSetName);
+        form.fields = getFields(recordId, objectName, fieldSetName);
         
         return form;
     }
@@ -34,10 +34,10 @@ global with sharing class FieldSetController {
     
     public class FieldSetForm {
         @AuraEnabled
-        public List<FormField> Fields { get; set; }
+        public List<FormField> fields { get; set; }
         
         public FieldSetForm() {
-            Fields = new List<FormField>();
+            fields = new List<FormField>();
         }
     }
 
@@ -66,16 +66,20 @@ global with sharing class FieldSetController {
             String query = 'SELECT ' + fieldList + ' FROM MVEX__Property__c WHERE ';
             
             // Add conditions based on input property fields
-            if ((listin.Name != null && listin.Name != '')) {
-                if (String.isNotBlank(listin.Name)) query += ' Name LIKE \'%' + listin.Name + '%\' AND ';
-                query = query.removeEnd(' AND '); 
+            if (listin.Name != null && listin.Name != '') {
+                if (String.isNotBlank(listin.Name)) {
+                    query += ' Name LIKE \'%' + listin.Name + '%\' AND ';
+                }
+                query = query.removeEnd(' AND ');
             } else {
-                return null; 
+                return null;
             }
+
+            String escapeQuery = String.escapeSingleQuotes(query);
 
             System.debug('Generated Query: ' + query);
 
-            List<Property__c> listinglst = Database.query(query);
+            List<Property__c> listinglst = Database.query(escapeQuery);
 
             if (listinglst.isEmpty()) {
                 return null;
@@ -197,15 +201,26 @@ global with sharing class FieldSetController {
             String query = '';
             if ((listin.FirstName != null && listin.FirstName != '') || String.isNotBlank(listin.LastName)) {
                 query = 'SELECT ' + soqlquery + ' FROM Contact WHERE ';
-                if (String.isNotBlank(listin.FirstName)) query += ' FirstName LIKE \'%' + listin.FirstName + '%\' AND ';
-                if (String.isNotBlank(listin.LastName)) query += ' LastName LIKE \'%' + listin.LastName + '%\' AND ';
+                
+                if (String.isNotBlank(listin.FirstName)) {
+                    query += ' FirstName LIKE \'%' + listin.FirstName + '%\' AND ';
+                }
+                
+                if (String.isNotBlank(listin.LastName)) {
+                    query += ' LastName LIKE \'%' + listin.LastName + '%\' AND ';
+                }
+                
+                // Remove trailing ' AND '
                 query = query.removeEnd(' AND ');
                 System.debug('query>>>' + query);
-            }else{
+                
+            } else {
                 return null;
             }
+            
+            String escapeQuery = String.escapeSingleQuotes(query);
 
-            List<Contact> listinglst = Database.query(query);
+            List<Contact> listinglst = Database.query(escapeQuery);
 
             if (listinglst.isEmpty()) {
                 return null;
