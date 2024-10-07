@@ -7,19 +7,22 @@ public without sharing class WhatsAppMessageQueueable implements Queueable {
     private List<BroadcastMessageController.RecordData> recordsData;
     private Id templateId;
     private String timeOfMessage;
+    private String headerMergeVal;
+    private List<String> mergeFieldValues;
     public static String currentTime = System.now().format('yyyy-MM-dd HH:mm:ss');
 
 
-    public WhatsAppMessageQueueable(List<BroadcastMessageController.RecordData> recordsData, Id templateId, String timeOfMessage) {
+    public WhatsAppMessageQueueable(List<BroadcastMessageController.RecordData> recordsData, Id templateId, String timeOfMessage,String headerMergeVal,List<String> mergeFieldValues) {
         this.recordsData = recordsData;
         this.templateId = templateId;
         this.timeOfMessage = timeOfMessage;
+        this.headerMergeVal = headerMergeVal;
+        this.mergeFieldValues = mergeFieldValues;
     }
 
     public void execute(QueueableContext context) {
         try {
-            WhatsApp_Template__c waTemp = [SELECT Id, Name,Template_Header__c, Body__c,Template_Footer__c,Contains_Variable_Value__c	 
-                                           FROM WhatsApp_Template__c WHERE Id = :templateId LIMIT 1];
+            WhatsApp_Template__c waTemp = [SELECT Id, Name,Template_Header__c,Body__c,Template_Footer__c, Contains_Variable_Value__c,Language__c, Category__c, Total_Merge_Fields__c,Body_Merge_Field_Count__c,Type_of_Buttons__c FROM WhatsApp_Template__c WHERE Id = :templateId LIMIT 1];
 
             Broadcast__c broadcast = new Broadcast__c();
             insert broadcast;
@@ -27,11 +30,70 @@ public without sharing class WhatsAppMessageQueueable implements Queueable {
             String messageBody='';
             for (BroadcastMessageController.RecordData data : recordsData) {
                 if (data.phoneNumber != null && data.recordId != null) {
-                    if(waTemp.Contains_Variable_Value__c){
-                         messageBody = '{ "messaging_product": "whatsapp", "to": "'+data.phoneNumber+'", "type": "template", "template": { "name": "'+waTemp.Name+'", "language": { "code": "en_US" }, "components": [ {"type": "body", "parameters": [ { "type": "text", "text": "'+ data.recordName +'"} ] } ] } }';
-                    }else{
-                         messageBody = '{ "messaging_product": "whatsapp", "to": "'+data.phoneNumber+'", "type": "template", "template": { "name": "'+waTemp.Name+'", "language": { "code": "en_US" } } }';
+                    Boolean hasCopyCodeButton = false;
+
+                    if (!String.isBlank(waTemp.Type_of_Buttons__c)) {
+                        List<String> buttonTypes = waTemp.Type_of_Buttons__c.split('\n'); 
+            
+                        for (String buttonType : buttonTypes) {
+                            if (buttonType.trim().contains('COPY_CODE')) {
+                                hasCopyCodeButton = true;
+                            }
+                        }
                     }
+        
+                    if(waTemp.Category__c == 'Authentication'){
+                        String otpVal = generateOTP();
+                         messageBody = '{ "messaging_product": "whatsapp", "to": "' + data.phoneNumber + '", "type": "template", "template": { "name": "' + waTemp.Name + '", "language": { "code": "' + waTemp.Language__c + '" }, "components": [ ' +
+                        '{ "type": "body", "parameters": [{ "type": "text", "text": "' + otpVal + '" }] }, ' + 
+                        '{ "type": "button", "sub_type": "url", "index": 0, "parameters": [' +
+                        '{ "type": "text", "text": "' + otpVal + '" } ' + 
+                        '] } ] } }';
+        
+                        
+                    }else{
+        
+                        List<String> headerParameters = new List<String>();
+                        List<String> bodyParameters = new List<String>();
+            
+                        if (waTemp.Total_Merge_Fields__c > 0 && !String.isBlank(headerMergeVal)) {
+                            headerParameters.add('{ "type": "text", "text": "' + headerMergeVal + '" }');
+                        }
+                        
+                
+                        if (mergeFieldValues != null && mergeFieldValues.size() > 0) {
+                            for (Integer i = 0; i < mergeFieldValues.size(); i++) {
+                                String bodyValue = mergeFieldValues[i];
+                                if (!String.isBlank(bodyValue)) {
+                                    bodyParameters.add('{ "type": "text", "text": "' + bodyValue + '" }');
+                                }
+                            }
+                        }
+                
+                        messageBody = '{ "messaging_product": "whatsapp", "to": "' + data.phoneNumber + '", "type": "template", "template": { "name": "' + waTemp.Name + '", "language": { "code": "' + waTemp.Language__c + '" }, "components": [ ';
+            
+                        if (headerParameters.size() > 0) {
+                            String headerParamsJson = '[' + String.join(headerParameters, ',') + ']';
+                            messageBody += '{"type": "header", "parameters": ' + headerParamsJson + ' }';
+                        }
+                
+                        if (bodyParameters.size() > 0) {
+                            if (headerParameters.size() > 0) {
+                                messageBody += ', '; 
+                            }
+                            String bodyParamsJson = '[' + String.join(bodyParameters, ',') + ']';
+                            messageBody += '{"type": "body", "parameters": ' + bodyParamsJson + ' }';
+                        }
+        
+                        if (hasCopyCodeButton) {
+                            String couponCode = generateCouponCode(); 
+                            messageBody += '{ "type": "button", "sub_type": "COPY_CODE", "index": 0, "parameters": [{ "type": "coupon_code", "coupon_code": "' + couponCode + '" }] }';
+                        }
+                
+                        messageBody += '] } }';
+                    }
+                    System.debug('Message body: '+messageBody);
+        
                     sendWhatsAppMessage(data.phoneNumber, messageBody,templateId, waTemp.Name, timeOfMessage, broadcast.Id,data.recordId, data.recordName);
                 }
             }
@@ -53,6 +115,28 @@ public without sharing class WhatsAppMessageQueueable implements Queueable {
             System.debug('Error in execute: ' + e.getMessage() + '\n' + e + '\n Exception line no: ' + e.getLineNumber());
         }
     }
+
+    public static String generateOTP() {
+        Integer otp = (Integer) (Math.random() * 900000) + 100000;
+        return String.valueOf(otp);
+    }
+
+    public static String generateCouponCode() {
+        List<Integer> possibleLengths = new List<Integer>{5, 8,10, 12, 15};
+    
+        Integer randomLength = possibleLengths[(Integer)(Math.floor(Math.random() * possibleLengths.size()))];       
+    
+        String characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        String couponCode = '';
+    
+        for (Integer i = 0; i < randomLength; i++) {
+            Integer randomIndex = (Integer)(Math.floor(Math.random() * characters.length()));
+            couponCode += characters.substring(randomIndex, randomIndex + 1); 
+        }
+    
+        return couponCode; 
+    }
+    
 
     @future(callout=true)
     private static void sendWhatsAppMessage(String toPhone, String messageBody,String templateId, String messageText, String timeOfMessage, String broadcastId,String objRecordId, String recordName) {

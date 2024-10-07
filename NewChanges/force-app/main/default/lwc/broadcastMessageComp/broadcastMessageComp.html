@@ -50,6 +50,7 @@
                               <lightning-input
                                 type="search"
                                  onchange={handleKeyUp}
+                                 value={searchTerm}
                                 name="enter-search"
                                 placeholder="Search Records here..."
                               ></lightning-input>
@@ -170,41 +171,67 @@
                                 label="Choose Template"
                                 onlookupupdate={lookupRecord}
                                 placeholder="Search templates here..."></c-custom-lookup-lwc>
-                            </div>
-                            <div class="preview" style="position:relative; max-width: 50%;padding-left: 1rem; display: flex; justify-content: center; align-items: center; height: 100%;">
-                                <template if:true={selectedRecord}>
-                                    <div class="templatepreview">
-                                        <p style="padding-bottom: 0.3rem;"><b>{templateHeader}</b></p>
-                                        <!-- <p>{templateBody}</p> -->
-                                        <lightning-formatted-rich-text value={templateBody}></lightning-formatted-rich-text>
-                                        <p class="footerClass">{templateFooter}</p>
-                                    </div>
+
+                                <div class="merge-div">
+                                    <template if:true={mergeFieldCount}>
+                                        <p>Enter Values to populate for Merge Field</p>
+    
+                                            <template if:true={headerMergeFieldExists}>
+                                                <div class="mergefield">
+                                                    <label class="header-varr">{headerVarLabel}</label>
+                                                    <input type="text" class="nameInput"  placeholder="Enter value for Header {{1}}"  onchange={handleHeaderMergeFieldChange} maxlength="60" >
+                                                    <p class="char-count">{currentHeaderMerge}/{maxHeaderMerge}</p>
+                                                </div>
+                                            </template>
+                                        
+                                            <template for:each={mergeFieldArray} for:item="field" for:index="index">
+                                                <div class="mergefield" key={field.label}>
+                                                    <label style="margin-top: 1.5rem;margin-right:1rem;">{field.label}</label>
+                                                    <lightning-input type="text" placeholder={field.placeholder} data-label={field.label}
+                                                        onchange={handleMergeFieldChange} style="padding: 0;width: -webkit-fill-available;">
+                                                    </lightning-input>
+                                                </div>
+                                            
+                                            </template>
                                     
-                                </template>
-                                <template if:false={selectedRecord}>
-                                    <div class="falserecord" style="position: absolute;top: 1.8rem;left: 100%;width: max-content;">
-                                        <p>No template selected.</p>
-                                    </div>
-                                   
-                                </template>
+                                    </template>
+                                </div>
                             </div>
+                    </div>     
+                        <div class="preview" style="position:relative; max-width: 50%;padding-left: 1rem; display: flex; justify-content: center; align-items: center; height: 100%;">
+                            <template if:true={selectedRecord}>
+                                <div class="templatepreview">
+                                    <p style="padding-bottom: 0.3rem;"><b>{templateHeader}</b></p>
+                                    <!-- <p>{templateBody}</p> -->
+                                    <lightning-formatted-rich-text value={templateBody}></lightning-formatted-rich-text>
+                                    <p class="footerClass">{templateFooter}</p>
+                                </div>
+                                
+                            </template>
+                            <template if:false={selectedRecord}>
+                                <div class="falserecord" style="position: absolute;top: 1.8rem;left: 100%;width: max-content;">
+                                    <p>No template selected.</p>
+                                </div>
+                               
+                            </template>
                         </div>
+                    </div>
                           <div class="custom-modal-footer">
-                              <template if:false={selectedRecord}>
-                                  <button class="slds-button slds-button_neutral" onclick={handleCloseTemplate}>Cancel</button>
-                                  <button class="slds-button slds-button_brand" onclick={handleAddTemplate} disabled>Send Immediately</button>
-                                  <button class="slds-button slds-button_brand" onclick={handleSchedulePopup} disabled>Schedule</button>
-      
-                              </template>
-                              <template if:true={selectedRecord}>
-                                  <button class="slds-button slds-button_neutral" onclick={handleCloseTemplate}>Cancel</button>
-                              <button class="slds-button slds-button_brand" onclick={handleAddTemplate}>Send Immediately</button>
-                              <button class="slds-button slds-button_brand" onclick={handleSchedulePopup}>Schedule</button>
-                              </template>
+                        <template if:false={selectedRecord}>
+                            <button class="slds-button slds-button_neutral" onclick={handleCloseTemplate}>Cancel</button>
+                            <button class="slds-button slds-button_brand" onclick={handleAddTemplate} disabled>Send Immediately</button>
+                            <button class="slds-button slds-button_brand" onclick={handleSchedulePopup} disabled>Schedule</button>
+
+                        </template>
+                        <template if:true={selectedRecord}>
+                            <button class="slds-button slds-button_neutral" onclick={handleCloseTemplate}>Cancel</button>
+                        <button class="slds-button slds-button_brand" onclick={handleAddTemplate}>Send Immediately</button>
+                        <button class="slds-button slds-button_brand" onclick={handleSchedulePopup}>Schedule</button>
+                        </template>
                           </div>
                     </div>
                 </template>
-                <template if:true={isShowNextSchedule}>     
+                <template if:true={isShowNextSchedule}>      
                     <div class="modal-body"> 
                     <div class="custom-modal-body" id="modal-content-id-5" style="padding-top: 3rem;padding-bottom:3rem">
                         <div class="schedule-inputs">
@@ -213,15 +240,15 @@
                         </div>
                     </div>
                         <div class="custom-modal-footer">
-                            <div>
-                                <button class="slds-button slds-button_neutral Back" onclick={BacktoSendMessage}>Back</button>
+                        <div>
+                            <button class="slds-button slds-button_neutral Back" onclick={BacktoSendMessage}>Back</button>
+                        </div>
+                        <div>
+                            <button class="slds-button slds-button_neutral" onclick={hideModalBox2}>Cancel</button>
                             </div>
                             <div>
-                                <button class="slds-button slds-button_neutral" onclick={hideModalBox2}>Cancel</button>
-                            </div>
-                            <div>
-                                <button class="slds-button slds-button_brand" onclick={handleSchedule}>Schedule</button>
-                            </div>
+                            <button class="slds-button slds-button_brand" onclick={handleSchedule}>Schedule</button>
+                        </div>
                         </div>
                     </div>
 

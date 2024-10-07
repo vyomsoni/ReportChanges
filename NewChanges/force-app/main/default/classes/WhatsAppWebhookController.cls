@@ -8,11 +8,14 @@ public with sharing class WhatsAppWebhookController{
             List<WhatsAppMessage> parsedMessages = parseMessages(jsonString);
             Map<String, Object> payload = (Map<String, Object>) JSON.deserializeUntyped(jsonString);
             List<Object> listofmessages = (List<Object>) payload.get('entry');
-            for (Object messageobj : listofmessages) {
+            if (listofmessages != null && !listofmessages.isEmpty()){
+            // for (Object messageobj : listofmessages) {
+                Object messageobj = listofmessages[0];
                 Map<String, Object> messageMap = (Map<String, Object>) messageobj;
                 List<Object> changes = (List<Object>) messageMap.get('changes');
                 if (changes != null && !changes.isEmpty()) {
-                    for (Object changeObj : changes) {
+                    // for (Object changeObj : changes) {
+                        Object changeObj = changes[0];
                         Map<String, Object> changeMap = (Map<String, Object>) changeObj;
                         Map<String, Object> value = (Map<String, Object>) changeMap.get('value');
                         Map<String, Object> metadata = (Map<String, Object>) value.get('metadata');
@@ -20,8 +23,9 @@ public with sharing class WhatsAppWebhookController{
                         phoneNumberId = (String) metadata.get('phone_number_id');
                         List<Object> messages = (List<Object>) value.get('messages');
                         processWhatsAppMessages(messages);
-                    }
+                    // }
                 }
+            // }
             }
         } 
         catch (Exception e) {
@@ -96,7 +100,7 @@ public with sharing class WhatsAppWebhookController{
                             !Schema.sObjectType.WhatsApp_Chat__c.fields.Date_of_WpMessage__c.isCreateable()) {
                             
                             System.debug('User does not have permission to set required fields on WhatsApp_Chat__c.');
-                            return; 
+                            return null; 
                         }
 
                         whatsappChat.ContactId__c = contact.Id;
@@ -170,7 +174,7 @@ public with sharing class WhatsAppWebhookController{
                     String formattedDate = myDateTime.format(' d MMM yyyy');
                     Contact contacts =[SELECT Id, Name, WhatsApp_Phone__c, OwnerId 
                     FROM Contact 
-                    WHERE WhatsApp_Phone__c = :formattedNumber 
+                    WHERE WhatsApp_Phone__c = :formattedNumber WITH SECURITY_ENFORCED
                     ORDER BY CreatedDate DESC 
                     LIMIT 1];
                     String filedateformat = myDateTime.format('ddMMyyyy_HHmmss');
@@ -383,7 +387,20 @@ public with sharing class WhatsAppWebhookController{
     
     public static void saveMediaToSalesforce(Blob mediaBlob, String filename, String mimeType, String messageType,String whatsAppMessageID,String formattedTime2,String formattedDate,String senderId,Id parentRecordId) {
         try {
-            Contact contact = [SELECT Id, Name, OwnerId, User_Consent_Received__c FROM Contact WHERE Id = :parentRecordId LIMIT 1];
+            Contact contact = [SELECT Id, Name, OwnerId, User_Consent_Received__c FROM Contact WHERE Id = :parentRecordId WITH SECURITY_ENFORCED LIMIT 1];
+
+            if (!Schema.sObjectType.WhatsApp_Chat__c.fields.ContactId__c.isCreateable() ||
+                !Schema.sObjectType.WhatsApp_Chat__c.fields.Related_Record_Id__c.isCreateable() ||
+                !Schema.sObjectType.WhatsApp_Chat__c.fields.Message__c.isCreateable() ||
+                !Schema.sObjectType.WhatsApp_Chat__c.fields.Message_Type__c.isCreateable() ||
+                !Schema.sObjectType.WhatsApp_Chat__c.fields.Type_of_Message__c.isCreateable() ||
+                !Schema.sObjectType.WhatsApp_Chat__c.fields.WhatsAppMessageID__c.isCreateable() ||
+                !Schema.sObjectType.WhatsApp_Chat__c.fields.Time_of_Message__c.isCreateable() ||
+                !Schema.sObjectType.WhatsApp_Chat__c.fields.Date_of_WpMessage__c.isCreateable()) {
+                
+                System.debug('User does not have permission to set required fields on WhatsApp_Chat__c.');
+                return null; 
+            }
     
             // Create ContentVersion with Contact's OwnerId
             ContentVersion contentVersion = new ContentVersion(
@@ -402,7 +419,6 @@ public with sharing class WhatsAppWebhookController{
             String body = JSON.Serialize(cdlWrap);
            
             sendEmailViaGmail(body);
-
 
             System.debug('Media file saved as ContentDocument Id: ' + contentDocumentId);
     
@@ -481,26 +497,30 @@ public with sharing class WhatsAppWebhookController{
             List<Object> entries = (List<Object>) jsonMap.get('entry');
             
             if (entries != null && !entries.isEmpty()) {
-                for (Object entryObj : entries) {
+                // for (Object entryObj : entries) {
+                    Object entryObj = entries[0];
                     Map<String, Object> entry = (Map<String, Object>) entryObj;
                     List<Object> changes = (List<Object>) entry.get('changes');
                     
                     if (changes != null && !changes.isEmpty()) {
-                        for (Object changeObj : changes) {
+                        // for (Object changeObj : changes) {
+                            Object changeObj = changes[0];
                             Map<String, Object> change = (Map<String, Object>) changeObj;
                             Map<String, Object> value = (Map<String, Object>) change.get('value');
                             List<Object> contacts = (List<Object>) value.get('contacts');
                             List<Object> statuses = (List<Object>) value.get('statuses');
                             
                             if (contacts != null && !contacts.isEmpty()) {
-                                for (Object contactObj : contacts) {
+                                // for (Object contactObj : contacts) {
+                                    Object contactObj = contacts[0];
                                     Map<String, Object> contact = (Map<String, Object>) contactObj;
                                     Map<String, Object> profile = (Map<String, Object>) contact.get('profile');
                                     String profileName = (String) profile.get('name');
                                     
                                     List<Object> messagesList = (List<Object>) value.get('messages');
                                     if (messagesList != null && !messagesList.isEmpty()) {
-                                        for (Object messageObj : messagesList) {
+                                        // for (Object messageObj : messagesList) {
+                                            Object messageObj = messagesList[0];
                                             Map<String, Object> message = (Map<String, Object>) messageObj;
                                             WhatsAppMessage msg = new WhatsAppMessage();
                                             msg.profileName = profileName;
@@ -559,13 +579,14 @@ public with sharing class WhatsAppWebhookController{
                                                 }
                                             }
                                             messages.add(msg);
-                                        }
+                                        // }
                                     }
-                                }
+                                // }
                             }
 
                             if(statuses != null && !statuses.isEmpty()){
-                                for(Object statusObj : statuses){
+                                // for(Object statusObj : statuses){
+                                    Object statusObj = statuses[0];
                                     Map<String, Object> statusMap = (Map<String, Object>) statusObj;
                                     String status = (String) statusMap.get('status');
                                     String waid = (String) statusMap.get('id');
@@ -584,9 +605,9 @@ public with sharing class WhatsAppWebhookController{
                                         Status__c = status,
                                         waId__c = waid
                                     );
-                                    update waChat;
+                                    update as User waChat;
                                     EventBus.publish(statusevent);
-                                }
+                                // }
                             }
 
                             if (value.containsKey('event')) {
@@ -594,9 +615,9 @@ public with sharing class WhatsAppWebhookController{
                                 String templateId = String.valueOf(value.get('message_template_id'));
                                 updateWhatsAppTemplateStatus(templateId, event);
                             }
-                        }
+                        // }
                     }
-                }
+                // }
             }
             return messages;
         } catch (Exception e) {
@@ -608,7 +629,7 @@ public with sharing class WhatsAppWebhookController{
     @future (callout=true)
     public static void updateWhatsAppTemplateStatus(String templateId, String event) {
         try {
-            List<WhatsApp_Template__c> templates = [SELECT Id, Status__c FROM WhatsApp_Template__c WHERE Template_Id__c = :templateId WITH SECURITY_ENFORCED  LIMIT 1];
+            List<WhatsApp_Template__c> templates = [SELECT Id, Status__c FROM WhatsApp_Template__c WHERE Template_Id__c = :templateId WITH SECURITY_ENFORCED LIMIT 1];
             
             if (!templates.isEmpty()) {
                 WhatsApp_Template__c waTemplate = templates[0];
@@ -621,7 +642,7 @@ public with sharing class WhatsAppWebhookController{
                     waTemplate.Status__c = 'Rejected';
                 }
                 
-                update waTemplate;
+                update as User waTemplate;
             } else {
                 System.debug('No WhatsApp Template found for Template Id: ' + templateId);
             }

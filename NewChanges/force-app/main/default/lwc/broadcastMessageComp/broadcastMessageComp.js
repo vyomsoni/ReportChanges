@@ -27,14 +27,14 @@ const columns = [
 ];
 
 const recordcol = [
-    { label: 'Name', fieldName: 'Name', hideDefaultActions: 'true' },
-    { label: 'WhatsApp Phone', fieldName: 'WhatsApp_Phone__c' , hideDefaultActions: 'true'}
+    { label: 'Name', fieldName: 'Name' },
+    { label: 'WhatsApp Phone', fieldName: 'WhatsApp_Phone__c' }
 ];
 const selectedrecordcol = [
-    { label: 'Name', fieldName: 'Name' , hideDefaultActions: 'true'},
-    { label: 'WhatsApp Phone', fieldName: 'WhatsApp_Phone__c', hideDefaultActions: 'true' },
-    { label: 'Type', fieldName: 'ObjectName' , hideDefaultActions: 'true'},
-    { fieldName: 'delete', type: 'button', hideDefaultActions: 'true', innerWidth: 20, typeAttributes: { variant: "base", name: 'delete', iconName: 'utility:delete', }, cellAttributes: { alignment: 'center' } }
+    { label: 'Name', fieldName: 'Name' },
+    { label: 'WhatsApp Phone', fieldName: 'WhatsApp_Phone__c' },
+    { label: 'Type', fieldName: 'ObjectName' },
+    { fieldName: 'delete', type: 'button', innerWidth: 20, typeAttributes: { variant: "base", name: 'delete', iconName: 'utility:delete', }, cellAttributes: { alignment: 'center' } }
 
 ];
 
@@ -47,6 +47,7 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
     @track sessionId = '';
     @track paginatedRecorddata = [];
     @track paginatedBroadcast = [];
+    @track filteredRecordData=[];
     @track selectedRecords = [];
     @track listViewOptions = [];
     @track paginatedSelectedRecords = [];
@@ -56,14 +57,14 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
     @track recordcol = recordcol;
     @track selectedrecordcol = selectedrecordcol;
     record = {};
-    // @track objectOptions = [
+    @track objectOptions = [
         // { label: 'Account', value: 'Account' },
-        // { label: 'Contact', value: 'Contact' },
+        { label: 'Contact', value: 'Contact' },
         // { label: 'Lead', value: 'Lead' },
         // { label: 'User', value: 'User' },
         // { label: 'Listing', value: 'Listing__c' },
         // { label: 'Opportunity', value: 'Opportunity' }
-    // ];
+    ];
     @track selectedObject = 'Contact';
     @track hasRecords = false;
     @track broadcastEdited = false;
@@ -98,6 +99,14 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
     @track isShowSchedule = false;
     @track isShowNextSchedule = false;
     @track isMainModal = true;
+    @track containsMergeFields = false;
+    @track mergeFieldCount = false;
+    @track mergeFieldArray = [];
+    @track headerMergeFieldExists = false;
+    @track mergeFieldValues = new Map();
+    @track headerVarLabel = '{{1}}';
+    @track headerMergeValue ='';
+    @track maxHeaderMerge = 60;
 
     connectedCallback() {
         this.isLoading = true;
@@ -258,7 +267,7 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
         }
 
 
-        console.log('preselectRowsOnPageChange: ', JSON.stringify(currentPageRows));
+        // console.log('preselectRowsOnPageChange: ', JSON.stringify(currentPageRows));
 
         // Check if the rows have an 'Id' property
         const rowIds = currentPageRows.map(row => row.Id);
@@ -292,29 +301,36 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
     handleKeyUp(event) {
         try {
             this.searchTerm = event.target.value.trim().toLowerCase();
-    
+        
             if (this.searchTerm !== '') {
                 const selectedIds = new Set(this.selectedRecords.map(record => record.Id));
-    
+        
                 const filteredData = this.alldata.filter((e) => {
                     let Name = e.Name ? e.Name.trim().toLowerCase() : '';
                     let Phone = e.WhatsApp_Phone__c ? e.WhatsApp_Phone__c.trim().toLowerCase() : '';    
                     return (Name.includes(this.searchTerm) || Phone.includes(this.searchTerm)) && !selectedIds.has(e.Id);
                 });
     
-                this.paginatedRecorddata = filteredData.slice(0, 10);
-                console.log('Filtered pagination==>', JSON.stringify(this.paginatedRecorddata));
+                this.filteredRecordData = filteredData;
+
+                if (this.filteredRecordData.length === 0) {
+                    console.log('this.filteredRecordData.length ',this.filteredRecordData.length);
+                    
+    
+                    this.currentPage = 1;
+                    this.paginatedRecorddata = [];
+                    console.log('this.paginatedRecorddata.length ',this.paginatedRecorddata.length);
+                    
+                } else {
+                    this.currentPage = 1; 
+                    this.updatePaginatedData();
+                }
     
             } else {
-                this.paginatedRecorddata = this.alldata.filter(e => !this.selectedRecords.some(selected => selected.Id === e.Id)).slice(0, 10);
+                this.filteredRecordData = [...this.alldata];
+                this.currentPage = 1;
+                this.updatePaginatedData(); 
             }
-    
-            this.paginatedRecorddata = this.paginatedRecorddata.map((record) => {
-                return {
-                    ...record,
-                    isSelected: this.selectedRecords.some(selected => selected.Id === record.Id) 
-                };
-            });
     
         } catch (error) {
             console.log('Error:', JSON.stringify(error));
@@ -353,8 +369,8 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
                 if (result) {
                     this.alldata = result;
                 }
-                console.log('all Data==>' + JSON.stringify(result));
-                console.log('all Data==>' + JSON.stringify(this.alldata));
+                // console.log('all Data==>' + JSON.stringify(result));
+                // console.log('all Data==>' + JSON.stringify(this.alldata));
 
                 this.selectedRowsTemp = [];
 
@@ -374,7 +390,7 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
                     console.warn('No records found for the selected list view.');
                 } else {
                     this.isLoading = false;
-                    console.log('Filtered Records:', this.recorddata);
+                    // console.log('Filtered Records:', this.recorddata);
                     console.log('Filtered recorddata size==> ', this.recorddata.length);
                 }
 
@@ -445,10 +461,19 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
         this.selectedRecords = [...this.selectedRecords, ...validRecords];
         console.log('selected length ', this.selectedRecords.length);
 
-        this.recorddata = this.recorddata.filter(record =>
-            !this.selectedRowsTemp.includes(record.Id) ||
-            !(record.WhatsApp_Phone__c && record.WhatsApp_Phone__c.trim() !== '')
-        );
+        // this.recorddata = this.recorddata.filter(record =>
+        //     !this.selectedRowsTemp.includes(record.Id) ||
+        //     !(record.WhatsApp_Phone__c && record.WhatsApp_Phone__c.trim() !== '')
+        // );
+
+        const selectedIds = new Set(this.selectedRowsTemp);
+
+        this.recorddata = this.recorddata.filter(record => !selectedIds.has(record.Id));
+        
+        // Also update filteredRecordData if a search is active
+        if (this.filteredRecordData) {
+            this.filteredRecordData = this.filteredRecordData.filter(record => !selectedIds.has(record.Id));
+        }
 
         this.selectedRows = [];
         this.selectedRowsTemp = [];
@@ -462,34 +487,40 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
         }
         this.allRecords[this.selectedObject][this.selectedListView] = this.recorddata;
 
+        this.searchTerm='';
         this.updatePaginatedData();
         this.updatePaginatedSelectedData();
+        
 
         this.showToast('Success', 'Selected records with phone number added.', 'success');
     }
 
     updatePaginatedData() {
-        const recordArray = Array.from(this.recorddata);
+        const dataSource = this.filteredRecordData && this.filteredRecordData.length > 0 ? this.filteredRecordData : this.recorddata;
+        
+        const recordArray = Array.from(dataSource);
         const totalRecords = recordArray.length;
         const startIdx = (this.currentPage - 1) * this.pageSize;
         const endIdx = this.currentPage * this.pageSize;
-
+    
         this.paginatedRecorddata = recordArray.slice(startIdx, Math.min(endIdx, totalRecords));
+    
+        // Adjust current page if no data in the current page
         if (this.paginatedRecorddata.length === 0 && this.currentPage > 1) {
             this.currentPage--;
             this.updatePaginatedData();
             console.log('this is pagination call');
-
         }
+    
         if (this.paginatedRecorddata.length > 0) {
             console.log('this is paginatedRecorddata call' + this.paginatedRecorddata.length);
             this.preselectRowsOnPageChange(this.paginatedRecorddata);
-
         }
-
+    
         console.log('Current Page:', this.currentPage);
         console.log('Paginated Record Data:', this.paginatedRecorddata);
     }
+    
 
     updatePaginatedSelectedData() {
         console.log('update pagination called.');
@@ -539,21 +570,26 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
     }
 
     get totalNumberOfPages1() {
+        const dataSource = this.filteredRecordData && this.filteredRecordData.length > 0 ? this.filteredRecordData : this.recorddata;
         if (this.pageSize > 0) {
-            return Math.ceil(this.recorddata.length / this.pageSize);
+            return Math.ceil(dataSource.length / this.pageSize);
         }
         return 1;
     }
 
     @api
     get disablePrevButtons1() {
-        return this.currentPage === 1;
+        return this.currentPage === 1 || this.paginatedRecorddata.length === 0;
     }
+
     @api
     get disableNextButtons1() {
+        const dataSource = this.filteredRecordData && this.filteredRecordData.length > 0 ? this.filteredRecordData : this.recorddata;
         return (
             this.currentPage === this.totalNumberOfPages1 ||
-            this.totalNumberOfPages1 === 0
+            this.totalNumberOfPages1 === 0 ||
+            this.paginatedRecorddata.length === 0
+
         );
     }
 
@@ -690,8 +726,35 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
                         this.templateBody = data.Body__c;
                         this.templateFooter = data.Template_Footer__c;
                         this.selectedRecord = true;
+
+                        if(this.templateBody == '' || this.templateBody == null){
+                            this.showToastError('No Preview for this template');
+                            
+                        }else{
+                            this.headerMergeFieldExists = parseInt(data.Header_Merge_Field_Count__c, 10) > 0;
+                            this.mergeFieldCount = parseInt(data.Total_Merge_Fields__c, 10); 
+                            this.bodymergeFieldCount = parseInt(data.Body_Merge_Field_Count__c, 10); 
+                        
+                            this.containsMergeFields = this.headerMergeFieldExists || this.mergeFieldCount > 0;
+                            
+                            this.selectedRecord = true;
+                        
+                            console.log(this.headerMergeFieldExists, ' this.headerMergeFieldExists');
+                            console.log(this.bodyMergeFieldCount, ' this.bodyMergeFieldCount');
+        
+                        
+                            if(this.bodymergeFieldCount > 0){   
+                                const count = this.bodymergeFieldCount; 
+                                this.mergeFieldArray = Array.from({ length: count }, (v, i) => ({
+                                    label: `{{${i + 1}}}`,
+                                    placeholder: `Enter value for Body {{${i + 1}}}`
+                                }));
+                            }
+                        }
                     } else {
                         this.selectedRecord = false;
+                        this.mergeFieldCount=false;
+
                     }
 
                 })
@@ -715,6 +778,7 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
     handleCloseTemplate() {
         console.log('logtrue');
         this.selectedRecord = false;
+        this.mergeFieldCount=false;
         this.showTemplate = false;
         this.isMainModal = true;
         this.isShowNextSchedule = false;
@@ -737,6 +801,8 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
         const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
         const timeString = formattedHours + ':' + formattedMinutes + ' ' + ampm;
         const currentTime = timeString;
+        const paramsArray = Array.from(this.mergeFieldValues.values());
+        console.log('paramsArray ',paramsArray);
 
         console.log('Current time:', currentTime);
 
@@ -754,7 +820,9 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
         sendTemplateMessage({
             recordsJson: recordsJson,
             templateId: this.templateId,
-            timeOfMessage: currentTime
+            timeOfMessage: currentTime,
+            headerMergeVal:this.headerMergeValue,
+            mergeFieldValues: paramsArray || ''
 
         })
             .then(() => {
@@ -768,6 +836,7 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
                 this.isLoading = false;
                 this.isShowSchedule = false;
                 this.isShowNextSchedule = false;
+                this.mergeFieldCount=false;
 
                 this.showToast('Success', 'Messages sent successfully!', 'success');
 
@@ -775,6 +844,8 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
             .catch(error => {
                 console.error('Error sending messages:', error.body.message);
                 this.showToast('Error', 'Failed to send messages', 'error');
+                this.mergeFieldCount=false;
+
             });
     }
 
@@ -833,6 +904,9 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
             return;
         }
 
+        const paramsArray = Array.from(this.mergeFieldValues.values());
+        console.log('paramsArray ',paramsArray);
+
         // const formattedDateTime = scheduleDate.toISOString().slice(0, -1); 
         const recordsData = this.selectedRecords.map(record => {
             return {
@@ -849,13 +923,16 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
         scheduleTemplateMessage({
             recordsJson: recordsJson,
             templateId: this.templateId,
-            timeOfMessage: scheduleDateTime
+            timeOfMessage: scheduleDateTime,
+            headerMergeVal:this.headerMergeValue,
+            mergeFieldValues: paramsArray || ''
         })
             .then(result => {
                 console.log('Job scheduled successfully.');
                 this.showTemplate = false;
                 this.selectedRecords = [];
                 this.paginatedSelectedRecords = [];
+                this.mergeFieldCount=false;
 
                 this.dispatchEvent(new ShowToastEvent({
                     title: "Success",
@@ -865,13 +942,11 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
             })
             .catch(error => {
                 console.error('Error scheduling job:', error.body);
+                this.mergeFieldCount=false;
             });
     }
 
-    // handleScheduleTemp(){
-    //     this.isShowSchedule=true;
-    //     this.showTemplate=false;
-    // }
+
     handleSchedulePopup() {
         this.isShowNextSchedule = true;
         this.isMainModal = false;
@@ -885,6 +960,22 @@ export default class BroadcastMessageComp extends NavigationMixin(LightningEleme
         this.showTemplate = false;
         this.isMainModal = true;
         this.isShowNextSchedule = false;
+    }
+
+    handleMergeFieldChange(event) {
+        const fieldLabel = event.target.dataset.label; 
+        const fieldValue = event.target.value;  
+    
+        this.mergeFieldValues.set(fieldLabel, fieldValue);
+        console.log('fieldlabel ',fieldLabel);
+       
+    }
+    handleHeaderMergeFieldChange(event){
+        this.headerMergeValue =  event.target.value;  
+    }
+
+    get currentHeaderMerge() {
+        return this.headerMergeValue.length;
     }
 
     backToControlCenter(event) {
