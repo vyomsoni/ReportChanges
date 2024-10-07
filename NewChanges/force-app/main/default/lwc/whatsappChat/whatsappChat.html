@@ -1,0 +1,291 @@
+<template>
+    <div class="main-div">
+        <div class="body">
+            <div class="second-part">
+                <div class="date-box"></div>
+
+                <template if:true={isLoading}>
+                    <div>
+                        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                    </div>
+                </template>
+
+                <div class="chat-box" onclick={handleEmojiHide}>
+                    <template if:true={messagesByDate.length}>
+                        <template for:each={messagesByDate} for:item="messageGroup">
+                            <div key={messageGroup.date} class="date-parent">
+                                <div class="date-div">
+                                    <p class="date">{messageGroup.date}</p>
+                                </div>
+                    
+                                <template for:each={messageGroup.messages} for:item="message">
+                                    <div key={message.message} class={message.cssClass}>
+                                        <div class={message.messageContainerClass}>
+                                            <template if:true={message.isText}>
+                                                <p>{message.message}</p>
+                                            </template>
+                                           
+                                            <template if:true={message.isDocument}>
+                                                <div style="width:14rem">
+                                                    <div class="slds-file slds-file_card slds-has-title">
+                                                        <figure>
+                                                            <a href={message.filePreviewUrl} class="slds-file__crop" onclick={handlePreview}
+                                                               data-id={message.contentDocumentId}>
+                                                                <img class="thumbnail" src={message.fileThumbnail} alt="No Preview Available" onerror={handleImageError} />
+                                                            </a>
+                                                            <figcaption class="slds-file__title slds-file__title_card">
+                                                                <div class="slds-media__body">
+                                                                    <p class="slds-truncate" title={message.fileName}>
+                                                                        {message.fileName}
+                                                                    </p>
+                                                                </div>
+                                                                <a href={message.fileUrl} >
+                                                                    <lightning-button-icon
+                                                                        icon-name="utility:download"
+                                                                        variant="bare"
+                                                                        alternative-text="Download File">
+                                                                    </lightning-button-icon>
+                                                                </a>
+                                                            </figcaption>
+                                                        </figure>
+                                                    </div>
+                                                </div>
+                                            </template>
+
+                                            <template if:true={message.isImage}>
+                                                <div style="width:14rem">
+                                                    <div class="slds-file slds-file_card slds-has-title">
+                                                        <figure>
+                                                            <a href={message.filePreviewUrl} class="slds-file__crop" onclick={handlePreview}
+                                                               data-id={message.contentDocumentId}>
+                                                                <img class="thumbnail" src={message.fileThumbnail} alt="No Preview Available" onerror={handleImageError} />
+                                                            </a>
+                                                            <figcaption class="slds-file__title slds-file__title_card">
+                                                                <div class="slds-media__body">
+                                                                    <p class="slds-truncate" title={message.fileName}>
+                                                                        {message.fileName}
+                                                                    </p>
+                                                                </div>
+                                                                <a href={message.fileUrl} >
+                                                                    <lightning-button-icon
+                                                                        icon-name="utility:download"
+                                                                        variant="bare"
+                                                                        alternative-text="Download File">
+                                                                    </lightning-button-icon>
+                                                                </a>
+                                                            </figcaption>
+                                                        </figure>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            
+                                            <template if:true={message.isVideo}>
+                                                <div style="width:14rem">
+                                                    <div class="slds-file slds-file_card slds-has-title">
+                                                        <figure>
+                                                            <a href={message.filePreviewUrl} class="slds-file__crop" onclick={handlePreview}
+                                                               data-id={message.contentDocumentId}>
+                                                                <img class="thumbnail" src={message.fileThumbnail} alt="No Preview Available" onerror={handleImageError} />
+                                                            </a>
+                                                            <figcaption class="slds-file__title slds-file__title_card">
+                                                                <div class="slds-media__body">
+                                                                    <p class="slds-truncate" title={message.fileName}>
+                                                                        {message.fileName}
+                                                                    </p>
+                                                                </div>
+                                                                <a href={message.fileUrl} >
+                                                                    <lightning-button-icon
+                                                                        icon-name="utility:download"
+                                                                        variant="bare"
+                                                                        alternative-text="Download File">
+                                                                    </lightning-button-icon>
+                                                                </a>
+                                                            </figcaption>
+                                                        </figure>
+                                                    </div>
+                                                </div>
+                                            </template>
+
+                                            <template if:true={message.isAudio}>
+                                                <div class="audio-div" >
+                                                    <div class="headphone">
+                                                        <img src={headphone} class="audio-icon" alt="audioIcon">
+                                                    </div>
+                                                    <div>
+                                                        <a href={message.fileUrl} target="_blank" style="position: absolute; bottom: 6px; right: 10px;">
+                                                            <lightning-button-icon
+                                                                class="download-btn"
+                                                                icon-name="utility:download"
+                                                                variant="bare"
+                                                                alternative-text="Download File">
+                                                            </lightning-button-icon>
+                                                        </a>
+                                                    </div>
+                                                   
+                                                    <div class="audio-name">
+                                                         <p title={message.fileName} >{message.fileName}</p> 
+                                                        
+                                                    </div>                                                    
+                                                </div>
+                                              
+                                            </template>
+
+                                            <template if:true={message.isTemplate}>
+                                                <p><b>{message.templateHeader}</b></p>
+                                                <lightning-formatted-rich-text value={message.templateBody}></lightning-formatted-rich-text>
+                                                 <!-- <p>{message.templateBody}</p> -->
+                                                <p class="footerClass">{message.templateFooter}</p>
+                                            </template>
+
+                                            <template if:true={error}>
+                                                <p>Error retrieving messages: {error}</p>
+                                            </template>
+                                            <div class="bottom">
+                                                <p class={message.timeClass}>{message.timeOfMessage}</p>
+                                                <template if:true={message.showloadingTick}>
+                                                    <img class="load-tick" src={loadingTick} alt="">
+                                                </template>
+                                                <template if:true={message.showSingleTick}>
+                                                    <img class="single-tick" src={singleTick} alt="">
+                                                </template>
+                                                <template if:true={message.showDoubleTick}>
+                                                    <img class="double-tick" src={doubleTick} alt="">
+                                                </template>
+                                                <template if:true={message.showBlueTick}>
+                                                    <img class="blue-tick" src={blueTick} alt="">
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </template>
+
+                    <template if:false={messagesByDate.length}>
+                        <p class="no-messages">No messages here</p>
+                    </template>
+                </div>
+                <div if:true={showEmojis} class="emoji-container smooth-transition">
+                    <template if:true={emojis}>
+                        <template for:each={emojis} for:item="emoji">
+                            <span key={emoji.unicode} title={emoji.name} class="emoji" onclick={handleEmojiSelection}>{emoji.char}</span>
+                        </template>
+                    </template>
+                    <template if:false={emojis}>
+                        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                    </template>
+                </div>
+
+                <div if:true={showAttachment} class="attachment" >
+                    <lightning-file-upload
+                        label="Upload File"
+                        class="fileUpload"
+                        name="fileUploader"
+                        accept={acceptedFormats}
+                        record-id={recordId}
+                        onuploadfinished={handleUploadFinished}
+                        multiple>
+                    </lightning-file-upload>
+                </div>
+            </div>
+            <template if:true={isDisabled}>
+                <button class="templateBtn" title="Text and file messages can only be send after receiving message from user" onclick={addTemplate}>Click here to send template message</button>
+            </template>
+            <template if:false={isDisabled}>
+                <div class="outer-input-div">
+                    <div class="input-icon">
+                        <div class="fourth-part">
+                            <img class="smily preventClick" title="Choose Emojis" onclick={handleEmoji} src={smileIcon}>
+                            <emoji-picker lwc:external></emoji-picker>
+                            <div style="width: 100%;">
+                                <input type="text" class="input-message" value={inputValue} placeholder="Type a message.." onchange={handleInputChange} style="outline: none; border:none" onkeypress={handleKeyDown}></input>   
+                            </div>
+                            <img class="attachlogo preventClick" src={attachIcon} alt="Attachment Logo" title="Choose Files" onclick={handleAttach}>
+                            <img class="attachlogo" src={PlusIcon} alt="plus Logo" title="Choose Templates" onclick={addTemplate}>
+                        </div>
+                    </div>
+                    <div class="fifth-right">
+                        <lightning-icon icon-name="utility:send" size="x-small" onclick={handleSend} alternative-text="Send"></lightning-icon>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <template if:true={showTemplate}>
+        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container" style="min-width: 60%;">
+
+                <header class="slds-modal__header custom-modal-header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseTemplate}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" 
+                                        variant="inverse" size="small" ></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Choose Template</h2>
+                </header>
+            <div class="modal-body">
+                <div class="custom-modal-body" id="modal-content-id-1" style="display:flex; min-height: 400px;">
+                    <div class="lookup" style="width: 50%;padding-right: 1rem;border-right: 1px solid grey; min-height:100%">
+                        <div>
+                            <c-custom-lookup-lwc icon-name="standard:contact"
+                            s-object-api-name="MVEX__WhatsApp_Template__c"
+                            label="Choose Template"
+                            onlookupupdate={lookupRecord}
+                            placeholder="Search templates here..."></c-custom-lookup-lwc>
+                        </div>
+                        <div class="merge-div">
+                            <template if:true={mergeFieldCount}>
+                                <p>Enter Values to populate for Merge Field</p>
+
+                                    <template if:true={headerMergeFieldExists}>
+                                        <div class="mergefield">
+                                            <label class="header-varr">{headerVarLabel}</label>
+                                            <input type="text" class="nameInput"  placeholder="Enter value for Header {{1}}"  onchange={handleHeaderMergeFieldChange} maxlength="60" >
+                                            <p class="char-count">{currentHeaderMerge}/{maxHeaderMerge}</p>
+                                        </div>
+                                    </template>
+                                
+                                    <template for:each={mergeFieldArray} for:item="field" for:index="index">
+                                        <div class="mergefield" key={field.label}>
+                                            <label style="margin-top: 1.5rem;margin-right:1rem;">{field.label}</label>
+                                            <lightning-input type="text" placeholder={field.placeholder} data-label={field.label}
+                                                onchange={handleMergeFieldChange} style="padding: 0;width: -webkit-fill-available;">
+                                            </lightning-input>
+                                        </div>
+                                       
+                                    </template>
+                               
+                            </template>
+                        </div>
+                    </div>
+                    <div class="preview" style="position:relative; max-width: 50%;padding-left: 1rem; display: flex; justify-content: center; align-items: center; height: 100%;">
+                        <template if:true={selectedRecord}>
+                            <div class="templatepreview">
+                                <p style="padding-bottom: 0.3rem;"><b>{templateHeader}</b></p>
+                                <lightning-formatted-rich-text value={templateBody}></lightning-formatted-rich-text>
+                                <p class="footerClass">{templateFooter}</p>
+                            </div>
+                            
+                        </template>
+                        <template if:false={selectedRecord}>
+                            <div class="falserecord" style="position: absolute;top: 1.8rem;left: 100%;width: max-content;">
+                                <p>No template selected.</p>
+                            </div>
+                           
+                        </template>
+                    </div>
+                </div>
+                <div class="custom-modal-footer">
+                    <button class="slds-button slds-button_neutral" onclick={handleCloseTemplate}>Cancel</button>
+                    <button class="slds-button slds-button_brand" onclick={handleAddTemplate}>Send Template</button>
+                </div>
+            </div>
+                
+                <!-- modal footer start-->
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>
