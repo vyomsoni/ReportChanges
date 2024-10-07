@@ -1,0 +1,236 @@
+<template>
+
+    <div class="main-div">
+        <div class="main_header_cls">
+            <div slot="title" class="header_block_css">
+                <div class="svg_back_icon" onclick={backToControlCenter}>
+                    <svg width="26" height="24" viewBox="0 0 30 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M28.3334 24.224C25.0711 20.2418 22.1742 17.9822 19.6427 17.4454C17.1111 16.9085 14.7009 16.8274 12.412 17.202V24.3334L1.66669 12.6967L12.412 1.66669V8.44469C16.6445 8.47802 20.2427 9.99646 23.2067 13C26.1702 16.0036 27.8791 19.7449 28.3334 24.224Z" fill="#131314" stroke="#131314" stroke-width="2" stroke-linejoin="round"/>
+                    </svg>                                                      
+                </div>
+                <div class="portal_mapping">
+                    Broadcast
+                </div>
+            </div>
+            <div class="details_cls">
+                <p>This feature allows you to send WhatsApp messages to as many contacts as you want.
+                </p>
+            </div>
+        </div>
+        <lightning-layout multiple-rows="true">
+            <lightning-layout-item padding="around-small" size="12">
+
+                <div class="first-div">
+                    <div class="createBroadcast" >
+                        <lightning-icon icon-name="action:new_group" class="icons"  alternative-text="broadcast" size="small"></lightning-icon>
+                        <h3>Create New Broadcast</h3>
+                    </div>
+                    <template if:true={isLoading}>
+                        <div>
+                            <c-spinner-component></c-spinner-component>
+                        </div>
+                    </template>
+                    <div class="outer-combobox">
+                        <!-- <div class="inner-combobox1">
+                            <lightning-combobox name="objectSelector" label="Select Object"
+                                placeholder="Choose an object" options={objectOptions} value={selectedObject}
+                                onchange={handleObjectChange}>
+                            </lightning-combobox>
+                        </div> -->
+                        <div class="inner-combobox2">
+                            <lightning-combobox name="listView" label="Select List View"
+                                placeholder="Choose an ListView" value={selectedListView} options={listViewOptions}
+                                onchange={handleListViewChange}>
+                            </lightning-combobox>
+                        </div>
+                    </div>
+                        <template if:true={hasRecords}>
+                        <div class="searchRecord">
+                            <div>
+                              <lightning-input
+                                type="search"
+                                 onchange={handleKeyUp}
+                                name="enter-search"
+                                placeholder="Search Records here..."
+                              ></lightning-input>
+                            </div>
+                        </div>
+                    </template>
+                    <div>
+                        <template if:true={hasRecords}>
+                            <div class="broadcast-table">
+                                <div class="all-record">                       
+                                    <h3>All Records</h3>
+                                    <lightning-datatable key-field="Id" data={paginatedRecorddata} columns={recordcol}
+                                        selected-rows={selectedRows} onrowselection={handleRowSelection} resize-column-disabled>
+                                    </lightning-datatable>
+
+                                    <div class="record-btn">
+                                        <div class="pagination1">
+                                            <lightning-button label="Previous" class="prev-btn" data-direction="prev" onclick={handlePageChange}
+                                                disabled={disablePrevButtons1}></lightning-button>
+                                            <lightning-button label="Next" data-direction="next"  disabled={disableNextButtons1}
+                                                onclick={handlePageChange}></lightning-button>
+                                        </div>
+                                        <div class="add-btn">
+                                            <lightning-button label="Add Records" onclick={handleAddSelected} disabled={addRecordDisabled}>
+                                            </lightning-button>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+
+                                <div class="selected-record">
+                                    <h3>Selected Records</h3>
+                                    <lightning-datatable key-field="Id" data={paginatedSelectedRecords}
+                                        columns={selectedrecordcol} onrowaction={handleDeleteAction}
+                                        hide-checkbox-column="true" resize-column-disabled>
+                                    </lightning-datatable>
+
+                                    <template if:true={noselected}>
+                                        <p class="no-selected">No Selected
+                                            Record</p>
+                                    </template>
+
+                                    <div class="pagination-div">
+                                        <div class="pagination2">
+                                            <lightning-button label="Previous" class="prev-btn"  data-direction="prev" onclick={handlePageChange2}
+                                                disabled={disablePrevButtons2}></lightning-button>
+                                            <lightning-button label="Next"  data-direction="next" disabled={disableNextButtons2}
+                                                onclick={handlePageChange2}></lightning-button>
+                                        </div>
+                                        <div class="send-meseg">
+                                            <lightning-button label="Send Message" disabled={disableCreateBroadcast}
+                                                onclick={handleSendMessage}>
+                                            </lightning-button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </template>
+
+                    </div>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item flexibility="auto" padding="around-small" size="12">
+        
+                <div class="broadcastRec">
+                    <template if:true={hasBroadcastRecord}>
+                        <div class="all-broadcast">
+                            <div class="recent">
+                                <lightning-icon icon-name="action:record" class="icons" alternative-text="broadcast" size="small"></lightning-icon>
+                                <h3>All Broadcasts</h3>
+                            </div>
+                            <div class="broadcast-table all-broadcast-table">
+                                <lightning-datatable key-field="id" data={paginatedBroadcast} columns={columns} style="width: 100%;"
+                                    hide-checkbox-column="true" class="custom-row-height" resize-column-disabled>
+                                </lightning-datatable>
+                            </div>
+                            <div class="broadcast-btns">
+                                <lightning-button label="Previous" class="broadcast-prevbtn"  data-direction="prev" onclick={handleBroadcastChange}
+                                    disabled={disablePrevBroadcast}></lightning-button>
+                                <lightning-button label="Next"  data-direction="next" disabled={disableNextBroadcast}
+                                    onclick={handleBroadcastChange}></lightning-button>
+                            </div>
+                        </div>
+                    </template>
+                    <template if:false={hasBroadcastRecord}>
+                        <div class="no-broadcast">
+                            <p>No recent broadcast.</p>
+                        </div>
+                    </template>
+                </div>
+            </lightning-layout-item>
+        </lightning-layout>
+
+    </div>
+
+     <template if:true={showTemplate}>
+        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container" style="min-width: 50%;">
+                <!-- modal header start -->
+                <header class="slds-modal__header custom-modal-header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseTemplate}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" 
+                                        variant="inverse" size="small" ></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Choose and Send Template</h2>
+                </header>
+            
+                <!-- modal body start -->
+                <template if:true={isMainModal}>
+                    <div class="modal-body">
+                        <div class="custom-modal-body" id="modal-content-id-1" style="display:flex; min-height: 200px;">
+                            <div class="lookup" style="width: 50%;padding-right: 1rem;border-right: 1px solid grey; min-height:100%">
+                                <c-custom-lookup-lwc icon-name="standard:contact"
+                                s-object-api-name="WhatsApp_Template__c"
+                                label="Choose Template"
+                                onlookupupdate={lookupRecord}
+                                placeholder="Search templates here..."></c-custom-lookup-lwc>
+                            </div>
+                            <div class="preview" style="position:relative; max-width: 50%;padding-left: 1rem; display: flex; justify-content: center; align-items: center; height: 100%;">
+                                <template if:true={selectedRecord}>
+                                    <div class="templatepreview">
+                                        <p style="padding-bottom: 0.3rem;"><b>{templateHeader}</b></p>
+                                        <!-- <p>{templateBody}</p> -->
+                                        <lightning-formatted-rich-text value={templateBody}></lightning-formatted-rich-text>
+                                        <p class="footerClass">{templateFooter}</p>
+                                    </div>
+                                    
+                                </template>
+                                <template if:false={selectedRecord}>
+                                    <div class="falserecord" style="position: absolute;top: 1.8rem;left: 100%;width: max-content;">
+                                        <p>No template selected.</p>
+                                    </div>
+                                   
+                                </template>
+                            </div>
+                        </div>
+                          <div class="custom-modal-footer">
+                              <template if:false={selectedRecord}>
+                                  <button class="slds-button slds-button_neutral" onclick={handleCloseTemplate}>Cancel</button>
+                                  <button class="slds-button slds-button_brand" onclick={handleAddTemplate} disabled>Send Immediately</button>
+                                  <button class="slds-button slds-button_brand" onclick={handleSchedulePopup} disabled>Schedule</button>
+      
+                              </template>
+                              <template if:true={selectedRecord}>
+                                  <button class="slds-button slds-button_neutral" onclick={handleCloseTemplate}>Cancel</button>
+                              <button class="slds-button slds-button_brand" onclick={handleAddTemplate}>Send Immediately</button>
+                              <button class="slds-button slds-button_brand" onclick={handleSchedulePopup}>Schedule</button>
+                              </template>
+                          </div>
+                    </div>
+                </template>
+                <template if:true={isShowNextSchedule}>     
+                    <div class="modal-body"> 
+                    <div class="custom-modal-body" id="modal-content-id-5" style="padding-top: 3rem;padding-bottom:3rem">
+                        <div class="schedule-inputs">
+                            <input type="date" class="date-picker" name="date-input" id="date-1" onchange={onDateChange} placeholder="Select Date" min={today}>
+                            <input type="time" class="time-picker" name="time-input" id="time-1" onchange={onTimeChange} placeholder="Select Time">
+                        </div>
+                    </div>
+                        <div class="custom-modal-footer">
+                            <div>
+                                <button class="slds-button slds-button_neutral Back" onclick={BacktoSendMessage}>Back</button>
+                            </div>
+                            <div>
+                                <button class="slds-button slds-button_neutral" onclick={hideModalBox2}>Cancel</button>
+                            </div>
+                            <div>
+                                <button class="slds-button slds-button_brand" onclick={handleSchedule}>Schedule</button>
+                            </div>
+                        </div>
+                    </div>
+
+                     
+                    <!-- <div class="slds-backdrop slds-backdrop_open"></div> -->
+                </template>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+</template>

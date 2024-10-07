@@ -296,7 +296,7 @@ public with sharing class WhatsAppIntegration {
                     Map<String, Object> firstMessage = (Map<String, Object>) messages[0];
                     String whatsAppMessageID = (String) firstMessage.get('id');
                     System.debug('WhatsApp Message ID: ' + whatsAppMessageID);
-
+̋
                     if (!Schema.sObjectType.WhatsApp_Chat__c.fields.Message_Type__c.isCreateable() ||
                         !Schema.sObjectType.WhatsApp_Chat__c.fields.Message__c.isCreateable() ||
                         !Schema.sObjectType.WhatsApp_Chat__c.fields.Time_of_Message__c.isCreateable() ||
