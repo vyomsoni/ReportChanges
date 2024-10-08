@@ -280,7 +280,19 @@ public with sharing class WhatsAppWebhookController{
                             Date_of_WpMessage__c = formattedDate,
                             userConsent__c = true
                         );
-                        insert whatsappChat;
+                        if (Schema.sObjectType.WhatsApp_Chat__c.fields.ContactId__c.isCreateable() && 
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.Related_Record_Id__c.isCreateable() &&
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.Message__c.isCreateable() &&
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.Message_Type__c.isCreateable() &&
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.Type_of_Message__c.isCreateable() &&
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.WhatsAppMessageID__c.isCreateable() &&
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.Time_of_Message__c.isCreateable() &&
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.Date_of_WpMessage__c.isCreateable() &&
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.Phone_Number_Id__c.isCreateable()) {
+                            insert whatsappChat;
+                        } else {
+                            System.debug('User does not have access to create fields on WhatsApp_Chat__c');
+                        }
                         updateContactUserConsent(contact);
                         EventBus.publish(chatevent);
                          // Send push notification
@@ -388,19 +400,6 @@ public with sharing class WhatsAppWebhookController{
     public static void saveMediaToSalesforce(Blob mediaBlob, String filename, String mimeType, String messageType,String whatsAppMessageID,String formattedTime2,String formattedDate,String senderId,Id parentRecordId) {
         try {
             Contact contact = [SELECT Id, Name, OwnerId, User_Consent_Received__c FROM Contact WHERE Id = :parentRecordId WITH SECURITY_ENFORCED LIMIT 1];
-
-            if (!Schema.sObjectType.WhatsApp_Chat__c.fields.ContactId__c.isCreateable() ||
-                !Schema.sObjectType.WhatsApp_Chat__c.fields.Related_Record_Id__c.isCreateable() ||
-                !Schema.sObjectType.WhatsApp_Chat__c.fields.Message__c.isCreateable() ||
-                !Schema.sObjectType.WhatsApp_Chat__c.fields.Message_Type__c.isCreateable() ||
-                !Schema.sObjectType.WhatsApp_Chat__c.fields.Type_of_Message__c.isCreateable() ||
-                !Schema.sObjectType.WhatsApp_Chat__c.fields.WhatsAppMessageID__c.isCreateable() ||
-                !Schema.sObjectType.WhatsApp_Chat__c.fields.Time_of_Message__c.isCreateable() ||
-                !Schema.sObjectType.WhatsApp_Chat__c.fields.Date_of_WpMessage__c.isCreateable()) {
-                
-                System.debug('User does not have permission to set required fields on WhatsApp_Chat__c.');
-                return null; 
-            }
     
             // Create ContentVersion with Contact's OwnerId
             ContentVersion contentVersion = new ContentVersion(
@@ -410,7 +409,16 @@ public with sharing class WhatsAppWebhookController{
                 ContentLocation = 'S',
                 OwnerId = contact.OwnerId
             );
-            insert contentVersion;
+            if (Schema.sObjectType.ContentVersion.fields.Title.isCreateable() &&
+                Schema.sObjectType.ContentVersion.fields.VersionData.isCreateable() &&
+                Schema.sObjectType.ContentVersion.fields.PathOnClient.isCreateable() &&
+                Schema.sObjectType.ContentVersion.fields.ContentLocation.isCreateable() &&
+                Schema.sObjectType.ContentVersion.fields.OwnerId.isCreateable()) {
+
+                insert contentVersion;
+            } else {
+                System.debug('User does not have access to create fields on ContentVersion');
+            }
             
             ContentVersion insertedContentVersion = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :contentVersion.Id WITH SECURITY_ENFORCED LIMIT 1 ];
             String contentDocumentId = insertedContentVersion.ContentDocumentId;
@@ -456,7 +464,20 @@ public with sharing class WhatsAppWebhookController{
                     Date_of_WpMessage__c = formattedDate,
                     userConsent__c = true
                 );
-                insert whatsappChat;
+                if (Schema.sObjectType.WhatsApp_Chat__c.fields.ContactId__c.isCreateable() && 
+                    Schema.sObjectType.WhatsApp_Chat__c.fields.Related_Record_Id__c.isCreateable() &&
+                    Schema.sObjectType.WhatsApp_Chat__c.fields.Message__c.isCreateable() &&
+                    Schema.sObjectType.WhatsApp_Chat__c.fields.Message_Type__c.isCreateable() &&
+                    Schema.sObjectType.WhatsApp_Chat__c.fields.Type_of_Message__c.isCreateable() &&
+                    Schema.sObjectType.WhatsApp_Chat__c.fields.WhatsAppMessageID__c.isCreateable() &&
+                    Schema.sObjectType.WhatsApp_Chat__c.fields.Time_of_Message__c.isCreateable() &&
+                    Schema.sObjectType.WhatsApp_Chat__c.fields.Date_of_WpMessage__c.isCreateable() &&
+                    Schema.sObjectType.WhatsApp_Chat__c.fields.Phone_Number_Id__c.isCreateable()) {
+
+                    insert whatsappChat;
+                } else {
+                    System.debug('User does not have access to create fields on WhatsApp_Chat__c');
+                }
                 sendNotificationForContact(contact);
                 EventBus.publish(chatevent);
                 System.debug('WhatsApp_Chat__c record created: ' + whatsappChat.Id);
@@ -525,7 +546,7 @@ public with sharing class WhatsAppWebhookController{
                                             WhatsAppMessage msg = new WhatsAppMessage();
                                             msg.profileName = profileName;
                                             msg.timestamp = (String) message.get('timestamp');
-                                            msg.WAMId = (String) message.get('id');
+                                            msg.wamId = (String) message.get('id');
                                             
                                             String messageType = (String) message.get('type');
                                             
@@ -704,15 +725,19 @@ public with sharing class WhatsAppWebhookController{
 
     public static void updateContactUserConsent(Contact con){
         if(con.User_Consent_Received__c == false){
-            con.User_Consent_Received__c = true;
-            update con;
+            if (Schema.sObjectType.Contact.fields.User_Consent_Received__c.isUpdateable()) {
+                con.User_Consent_Received__c = true;
+                update con;
+            } else {
+                System.debug('User does not have permission to update the User_Consent_Received__c field on Contact');
+            }
         }
     }
 
     public class WhatsAppMessage {
         public String profileName { get; set; }
         public String timestamp { get; set; }
-        public String WAMId { get; set; }
+        public String wamId { get; set; }
         public String textBody { get; set; }
         public String textType { get; set; }
         public String mimeType { get; set; }

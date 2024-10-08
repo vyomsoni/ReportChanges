@@ -30,6 +30,7 @@ const recordcol = [
     { label: 'Name', fieldName: 'Name' },
     { label: 'WhatsApp Phone', fieldName: 'WhatsApp_Phone__c' }
 ];
+
 const selectedrecordcol = [
     { label: 'Name', fieldName: 'Name' },
     { label: 'WhatsApp Phone', fieldName: 'WhatsApp_Phone__c' },
@@ -37,7 +38,6 @@ const selectedrecordcol = [
     { fieldName: 'delete', type: 'button', innerWidth: 20, typeAttributes: { variant: "base", name: 'delete', iconName: 'utility:delete', }, cellAttributes: { alignment: 'center' } }
 
 ];
-
 
 export default class BroadcastMessageComp extends NavigationMixin(LightningElement) {
 

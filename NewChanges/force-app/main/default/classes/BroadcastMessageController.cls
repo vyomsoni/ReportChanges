@@ -16,6 +16,7 @@ public without sharing class BroadcastMessageController {
         }
        
     }
+
     @AuraEnabled(cacheable=true)
     public static List<String> getObjectNames() {
         try {
@@ -31,7 +32,6 @@ public without sharing class BroadcastMessageController {
             System.debug('Error in getObjectNames: ' + e.getMessage() + '\n' + e + '\n Exception line no: ' + e.getLineNumber());
             return null;
         }
-       
     }
     
     @AuraEnabled(cacheable=true)
@@ -98,6 +98,7 @@ public without sharing class BroadcastMessageController {
                 }
                 
                 try {
+                    query =  String.escapeSingleQuotes(query);
                     List<SObject> objList = Database.query(query);
                     System.debug('objList ==> ' + objList);
                     System.debug('objList size ==> ' + objList.size());
