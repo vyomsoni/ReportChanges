@@ -93,7 +93,7 @@ public with sharing class BroadcastMessageController {
                     System.debug('Phone field is included in the query.');
                 } else {
                     System.debug('Phone field is not included in the query.');
-                    query = query.replace('FROM Contact', ', WhatsApp_Phone__c FROM Contact');
+                    query = query.replace('FROM Contact', ', WhatsApp_Phone__c FROM Contact WITH SECURITY_ENFORCED');
                     System.debug('Modified Query ==> ' + query);
                 }
                 

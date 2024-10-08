@@ -33,13 +33,9 @@ public with sharing class WhatsAppIntegration {
                 throw new AuraHandledException('No ContentVersion found for the given ContentDocumentId.');
             }
 
-            List<ContentDocumentLink> existingLinks;
-            if(ContentDocumentLink.SObjectType.getDescribe().isAccessible() && Schema.SObjectType.ContentDocumentLink.fields.Id.isAccessible() 
-                  && Schema.SObjectType.ContentDocumentLink.fields.ContentDocumentId.isAccessible() && Schema.SObjectType.ContentDocumentLink.fields.LinkedEntityId.isAccessible()) {
-                existingLinks = [SELECT Id FROM ContentDocumentLink WHERE ContentDocumentId = :contentDocumentId AND LinkedEntityId = :contactId LIMIT 1];
-            }
+            List<ContentDocumentLink> existingLinks = [SELECT Id FROM ContentDocumentLink WHERE ContentDocumentId = :contentDocumentId AND LinkedEntityId = :contactId WITH SECURITY_ENFORCED LIMIT 1];
 
-            if (existingLinks.isEmpty()) {
+            if (existingLinks != null) {
                 // Create a new ContentDocumentLink if not exists
                 ContentDocumentLink newLink = new ContentDocumentLink(
                     ContentDocumentId = contentDocumentId,
@@ -47,7 +43,10 @@ public with sharing class WhatsAppIntegration {
                     ShareType = 'V', 
                     Visibility = 'AllUsers' 
                 );
-                if(ContentDocumentLink.sObjectType.getDescribe().isCreateable()){
+                if(ContentDocumentLink.SObjectType.getDescribe().isAccessible() && 
+                Schema.SObjectType.ContentDocumentLink.fields.Id.isAccessible() && 
+                Schema.SObjectType.ContentDocumentLink.fields.ContentDocumentId.isAccessible() && 
+                Schema.SObjectType.ContentDocumentLink.fields.LinkedEntityId.isAccessible()) {
                     insert newLink;
                 }
             }

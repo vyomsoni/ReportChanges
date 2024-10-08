@@ -1,13 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
 	<types>
-		<members>BroadcastMessageController</members>
-		<members>FieldSetController</members>
-		<members>ListingManagerController</members>
-		<members>ListingManagerFilterController</members>
-		<members>MarketingListCmpController</members>
-		<members>SupportEmailService</members>
-		<members>WhatsAppIntegration</members>
+		<members>WhatsappChatController</members>
 		<name>ApexClass</name>
 	</types>
 	<version>60.0</version>

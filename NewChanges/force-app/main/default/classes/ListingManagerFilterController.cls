@@ -371,7 +371,7 @@ public with sharing class ListingManagerFilterController {
         // Get the currency ISO code of the current user
        try {
             // Query the CurrencyIsoCode field for the current user
-            String currencyIsoCode = [SELECT CurrencyIsoCode FROM User WHERE Id = :UserInfo.getUserId()].CurrencyIsoCode;
+            String currencyIsoCode = [SELECT CurrencyIsoCode FROM User WHERE Id = :UserInfo.getUserId() WITH SECURITY_ENFORCED].CurrencyIsoCode;
             return currencyIsoCode;
         } catch (Exception e) {
             ErrorHandler.insert_errordata(e, 'ListingManagerFilterController', 'getCurrencyISOCode', e.getMessage());

@@ -11,7 +11,7 @@ public with sharing class FieldSetController {
         if (recordId != null) {
             objectType = recordId.getSobjectType();
         }
-        else if (String.isNotBlank(objectName)) {
+        else if (objectName != null && String.isNotBlank(objectName)) {
             objectType = Schema.getGlobalDescribe().get(objectName);
         }
         Schema.DescribeSObjectResult objectDescribe = objectType.getDescribe();
