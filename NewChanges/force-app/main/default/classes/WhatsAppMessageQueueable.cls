@@ -1,8 +1,3 @@
-/*
---------- Last Edited by Kajal Tiwari -------
---------- DateTime: 4/09/24 4:00 PM ---------
---------- Changes: Correct the PMD Errors ---
-*/
 public without sharing class WhatsAppMessageQueueable implements Queueable {
     private List<BroadcastMessageController.RecordData> recordsData;
     private Id templateId;
@@ -49,18 +44,12 @@ public without sharing class WhatsAppMessageQueueable implements Queueable {
                         '{ "type": "button", "sub_type": "url", "index": 0, "parameters": [' +
                         '{ "type": "text", "text": "' + otpVal + '" } ' + 
                         '] } ] } }';
-        
-                        
                     }else{
-        
                         List<String> headerParameters = new List<String>();
                         List<String> bodyParameters = new List<String>();
-            
                         if (waTemp.Total_Merge_Fields__c > 0 && !String.isBlank(headerMergeVal)) {
                             headerParameters.add('{ "type": "text", "text": "' + headerMergeVal + '" }');
                         }
-                        
-                
                         if (mergeFieldValues != null && mergeFieldValues.size() > 0) {
                             for (Integer i = 0; i < mergeFieldValues.size(); i++) {
                                 String bodyValue = mergeFieldValues[i];
@@ -69,14 +58,11 @@ public without sharing class WhatsAppMessageQueueable implements Queueable {
                                 }
                             }
                         }
-                
                         messageBody = '{ "messaging_product": "whatsapp", "to": "' + data.phoneNumber + '", "type": "template", "template": { "name": "' + waTemp.Name + '", "language": { "code": "' + waTemp.Language__c + '" }, "components": [ ';
-            
                         if (headerParameters.size() > 0) {
                             String headerParamsJson = '[' + String.join(headerParameters, ',') + ']';
                             messageBody += '{"type": "header", "parameters": ' + headerParamsJson + ' }';
                         }
-                
                         if (bodyParameters.size() > 0) {
                             if (headerParameters.size() > 0) {
                                 messageBody += ', '; 
@@ -84,16 +70,12 @@ public without sharing class WhatsAppMessageQueueable implements Queueable {
                             String bodyParamsJson = '[' + String.join(bodyParameters, ',') + ']';
                             messageBody += '{"type": "body", "parameters": ' + bodyParamsJson + ' }';
                         }
-        
                         if (hasCopyCodeButton) {
                             String couponCode = generateCouponCode(); 
                             messageBody += '{ "type": "button", "sub_type": "COPY_CODE", "index": 0, "parameters": [{ "type": "coupon_code", "coupon_code": "' + couponCode + '" }] }';
                         }
-                
                         messageBody += '] } }';
                     }
-                    System.debug('Message body: '+messageBody);
-        
                     sendWhatsAppMessage(data.phoneNumber, messageBody,templateId, waTemp.Name, timeOfMessage, broadcast.Id,data.recordId, data.recordName);
                 }
             }
@@ -101,15 +83,9 @@ public without sharing class WhatsAppMessageQueueable implements Queueable {
                                       waTemp.Body__c + '\n'+
                                       waTemp.Template_Footer__c;
             broadcast.Message__c = broadcastMessage;
-            try {
-                if(Broadcast__c.sObjectType.getDescribe().isUpdateable()){
-                    update broadcast;
-                }
-                System.debug('Broadcast record updated successfully.');
-            } catch (Exception e) {
-                System.debug('Error updating Broadcast record: ' + e.getMessage());
+            if(Broadcast__c.sObjectType.getDescribe().isUpdateable()){
+                update broadcast;
             }
-
         } catch (Exception e) {
             // ExceptionLog.exception(e.getMessage(), 'WhatsAppMessageQueueable', 'execute',currentTime);
             System.debug('Error in execute: ' + e.getMessage() + '\n' + e + '\n Exception line no: ' + e.getLineNumber());
@@ -163,39 +139,34 @@ public without sharing class WhatsAppMessageQueueable implements Queueable {
                 Contact con = [Select Id, Name from Contact where Id =: objRecordId WITH SECURITY_ENFORCED];
 
                 Http http = new Http();
-                try {
-                    HttpResponse response = http.send(httpReq);
-                    String reponseBody = response.getBody();
-                    Map<String, Object> jsonMap = (Map<String, Object>) JSON.deserializeUntyped(reponseBody);
-                    List<Object> messages = (List<Object>) jsonMap.get('messages');
-                    Map<String, Object> firstMessage = (Map<String, Object>) messages[0];
-                    String whatsAppMessageID = (String) firstMessage.get('id');
-                    System.debug('WhatsApp Message ID: ' + whatsAppMessageID);
+                HttpResponse response = http.send(httpReq);
+                String reponseBody = response.getBody();
+                Map<String, Object> jsonMap = (Map<String, Object>) JSON.deserializeUntyped(reponseBody);
+                List<Object> messages = (List<Object>) jsonMap.get('messages');
+                Map<String, Object> firstMessage = (Map<String, Object>) messages[0];
+                String whatsAppMessageID = (String) firstMessage.get('id');
+                System.debug('WhatsApp Message ID: ' + whatsAppMessageID);
 
-                    if (response.getStatusCode() == 200) {
-                        WhatsApp_Chat__c whatsappMsg = new WhatsApp_Chat__c(
-                            Message_Type__c = 'Outbound-Message',
-                            Message__c = messageText,
-                            Time_of_Message__c = timeOfMessage,
-                            WhatsAppMessageID__c = whatsAppMessageID,
-                            Template__c=templateId,
-                            Record_Name__c = recordName,
-                            Related_Record_Id__c = objRecordId,
-                            ContactId__c = (con.Id != null) ? con.Id : '',
-                            Type_of_Message__c = 'Broadcast',
-                            Broadcast__c = broadcastId,
-                            Status__c = 'Success',
-                            Date_of_WpMessage__c = Datetime.now().format('d MMM yyyy')
-                        );
-                        if(WhatsApp_Chat__c.sObjectType.getDescribe().isCreateable()){
-                            insert whatsappMsg;
-                        }
-                    } else {
-                        System.debug('Failed to send message: ' + response.getBody());
+                if (response.getStatusCode() == 200) {
+                    WhatsApp_Chat__c whatsappMsg = new WhatsApp_Chat__c(
+                        Message_Type__c = 'Outbound-Message',
+                        Message__c = messageText,
+                        Time_of_Message__c = timeOfMessage,
+                        WhatsAppMessageID__c = whatsAppMessageID,
+                        Template__c=templateId,
+                        Record_Name__c = recordName,
+                        Related_Record_Id__c = objRecordId,
+                        ContactId__c = (con.Id != null) ? con.Id : '',
+                        Type_of_Message__c = 'Broadcast',
+                        Broadcast__c = broadcastId,
+                        Status__c = 'Success',
+                        Date_of_WpMessage__c = Datetime.now().format('d MMM yyyy')
+                    );
+                    if(WhatsApp_Chat__c.sObjectType.getDescribe().isCreateable()){
+                        insert whatsappMsg;
                     }
-                } catch (Exception e) {
-                    // ExceptionLog.exception(e.getMessage(), 'WhatsAppMessageQueueable', 'sendWhatsAppMessage',currentTime);
-                    System.debug('Error in sendWhatsAppMessage: ' + e.getMessage() + '\n' + e + '\n Exception line no: ' + e.getLineNumber());
+                } else {
+                    System.debug('Failed to send message: ' + response.getBody());
                 }
             } else {
                 System.debug('Access token or endpoint not set.');

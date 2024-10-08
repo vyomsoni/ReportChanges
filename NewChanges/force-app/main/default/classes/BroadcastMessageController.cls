@@ -1,11 +1,11 @@
-public without sharing class BroadcastMessageController {
+public with sharing class BroadcastMessageController {
     
     public static String currentTime = System.now().format('yyyy-MM-dd HH:mm:ss');
 
     @AuraEnabled(cacheable=true)
     public static List<Broadcast__c> getBroadcastRecord(){
         try {
-            List<Broadcast__c> broadcast = [Select Id, Name,CreatedDate,Recipients__c,Sent__c,Read__c,Delivered__c,Failed__c from Broadcast__c WITH SECURITY_ENFORCED ORDER BY CreatedDate DESC];
+            List<Broadcast__c> broadcast = [Select Id, Name,CreatedDate,Recipients__c,Sent__c,Read__c,Delivered__c,Failed__c from Broadcast__c WITH SECURITY_ENFORCED ORDER BY CreatedDate DESC LIMIT 50000];
             System.debug(broadcast);
             return broadcast;
 

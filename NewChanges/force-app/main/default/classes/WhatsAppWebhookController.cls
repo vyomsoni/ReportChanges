@@ -90,18 +90,6 @@ public with sharing class WhatsAppWebhookController{
 
                     if(chatRecordsWp.isEmpty() && deletedChatRecordsWp.isEmpty()){
                         WhatsApp_Chat__c whatsappChat = new WhatsApp_Chat__c();
-                        if (!Schema.sObjectType.WhatsApp_Chat__c.fields.ContactId__c.isCreateable() ||
-                            !Schema.sObjectType.WhatsApp_Chat__c.fields.Related_Record_Id__c.isCreateable() ||
-                            !Schema.sObjectType.WhatsApp_Chat__c.fields.Message__c.isCreateable() ||
-                            !Schema.sObjectType.WhatsApp_Chat__c.fields.Message_Type__c.isCreateable() ||
-                            !Schema.sObjectType.WhatsApp_Chat__c.fields.Type_of_Message__c.isCreateable() ||
-                            !Schema.sObjectType.WhatsApp_Chat__c.fields.WhatsAppMessageID__c.isCreateable() ||
-                            !Schema.sObjectType.WhatsApp_Chat__c.fields.Time_of_Message__c.isCreateable() ||
-                            !Schema.sObjectType.WhatsApp_Chat__c.fields.Date_of_WpMessage__c.isCreateable()) {
-                            
-                            System.debug('User does not have permission to set required fields on WhatsApp_Chat__c.');
-                            return null; 
-                        }
 
                         whatsappChat.ContactId__c = contact.Id;
                         whatsappChat.Related_Record_Id__c = contact.id;
@@ -125,7 +113,19 @@ public with sharing class WhatsAppWebhookController{
                             Date_of_WpMessage__c = formattedDate,
                             userConsent__c = true
                         );
-                        insert whatsappChat;
+                        if (Schema.sObjectType.WhatsApp_Chat__c.fields.ContactId__c.isCreateable() &&
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.Related_Record_Id__c.isCreateable() &&
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.Message__c.isCreateable() &&
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.Message_Type__c.isCreateable() &&
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.Type_of_Message__c.isCreateable() &&
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.WhatsAppMessageID__c.isCreateable() &&
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.Time_of_Message__c.isCreateable() &&
+                            Schema.sObjectType.WhatsApp_Chat__c.fields.Date_of_WpMessage__c.isCreateable()) {
+                            insert whatsappChat;
+                        }else{
+                            System.debug('User does not have permission to set required fields on WhatsApp_Chat__c.');
+                        }
+                        // insert whatsappChat;
                         updateContactUserConsent(contact);
                         EventBus.publish(chatevent);
                         sendNotificationForContact(contact);

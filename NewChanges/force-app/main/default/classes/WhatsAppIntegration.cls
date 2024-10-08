@@ -1,9 +1,3 @@
-/*
---------- Last Edited by Kajal Tiwari -------
---------- DateTime: 4/09/24 3:45 PM ---------
---------- Changes: Correct the PMD Errors ---
-*/
-
 public with sharing class WhatsAppIntegration {
 
     public static String currentTime = System.now().format('yyyy-MM-dd HH:mm:ss');
@@ -11,7 +5,6 @@ public with sharing class WhatsAppIntegration {
 	@AuraEnabled
     public static Boolean sendMessageWithText(String toPhone, String messageText, String contactId,String Message,String timeOfMessage,String fileData) {
         try {
-            
             String formattedMessage = messageText.replaceAll('"','\'');
             String messageBody = '{'+
             '    "messaging_product": "whatsapp",'+
@@ -34,21 +27,16 @@ public with sharing class WhatsAppIntegration {
     @AuraEnabled
     public static String createContentDistribution(String contentDocumentId, String contactId) {
         try {
-            List<ContentVersion> contentVersions = [
-                    SELECT Id, Title, VersionData, ContentDocumentId
-                    FROM ContentVersion
-                    WHERE ContentDocumentId = :contentDocumentId WITH SECURITY_ENFORCED
-                    ORDER BY CreatedDate DESC LIMIT 1];
+            List<ContentVersion> contentVersions = [SELECT Id, Title, VersionData, ContentDocumentId FROM ContentVersion WHERE ContentDocumentId = :contentDocumentId WITH SECURITY_ENFORCED ORDER BY CreatedDate DESC LIMIT 1];
             
             if (contentVersions.isEmpty()) {
                 throw new AuraHandledException('No ContentVersion found for the given ContentDocumentId.');
             }
-            // Check if the ContentDocumentLink already exists
+
             List<ContentDocumentLink> existingLinks;
             if(ContentDocumentLink.SObjectType.getDescribe().isAccessible() && Schema.SObjectType.ContentDocumentLink.fields.Id.isAccessible() 
                   && Schema.SObjectType.ContentDocumentLink.fields.ContentDocumentId.isAccessible() && Schema.SObjectType.ContentDocumentLink.fields.LinkedEntityId.isAccessible()) {
                 existingLinks = [SELECT Id FROM ContentDocumentLink WHERE ContentDocumentId = :contentDocumentId AND LinkedEntityId = :contactId LIMIT 1];
-            
             }
 
             if (existingLinks.isEmpty()) {
@@ -66,18 +54,6 @@ public with sharing class WhatsAppIntegration {
 
             ContentVersion contentVersion = contentVersions[0];
 
-            if (!Schema.sObjectType.ContentDistribution.isCreateable() || 
-                !Schema.sObjectType.ContentDistribution.fields.Name.isCreateable() ||
-                !Schema.sObjectType.ContentDistribution.fields.ContentVersionId.isCreateable() ||
-                !Schema.sObjectType.ContentDistribution.fields.PreferencesAllowOriginalDownload.isCreateable() ||
-                !Schema.sObjectType.ContentDistribution.fields.PreferencesAllowPDFDownload.isCreateable() ||
-                !Schema.sObjectType.ContentDistribution.fields.PreferencesAllowViewInBrowser.isCreateable() ||
-                !Schema.sObjectType.ContentDistribution.fields.PreferencesNotifyOnVisit.isCreateable()) {
-                
-                System.debug('User does not have permission to create ContentDistribution or required fields.');
-                return null; // Optionally return or handle the situation based on your logic
-            }
-
             // Create ContentDistribution record
             ContentDistribution contentDistribution = new ContentDistribution(
                 Name = 'Public Link',
@@ -87,12 +63,20 @@ public with sharing class WhatsAppIntegration {
                 PreferencesAllowViewInBrowser = true,
                 PreferencesNotifyOnVisit = false
             );
-
-            insert contentDistribution;
- 
+            if (Schema.sObjectType.ContentDistribution.isCreateable() && 
+                Schema.sObjectType.ContentDistribution.fields.Name.isCreateable() &&
+                Schema.sObjectType.ContentDistribution.fields.ContentVersionId.isCreateable() &&
+                Schema.sObjectType.ContentDistribution.fields.PreferencesAllowOriginalDownload.isCreateable() &&
+                Schema.sObjectType.ContentDistribution.fields.PreferencesAllowPDFDownload.isCreateable() &&
+                Schema.sObjectType.ContentDistribution.fields.PreferencesAllowViewInBrowser.isCreateable() &&
+                Schema.sObjectType.ContentDistribution.fields.PreferencesNotifyOnVisit.isCreateable()) {
+                
+                System.debug('User does not have permission to create ContentDistribution or required fields.');
+                insert contentDistribution;
+            }else{
+                System.debug('User does not have permission to create ContentDistribution or required fields.');
+            }
             ContentDistribution createdContentDistribution = [SELECT Id, DistributionPublicUrl,ContentDownloadUrl FROM ContentDistribution WHERE Id = :contentDistribution.Id WITH SECURITY_ENFORCED];
-            System.debug('createdContentDistribution.ContentDownloadUrl==> '+createdContentDistribution.ContentDownloadUrl);
-            System.debug('createdContentDistribution.DistributionPublicUrl===> '+createdContentDistribution.DistributionPublicUrl);
             return createdContentDistribution.ContentDownloadUrl;
         } catch (Exception e) {
             // ExceptionLog.exception(e.getMessage(), 'WhatsAppIntegration', 'createContentDistribution',currentTime);
@@ -170,18 +154,12 @@ public with sharing class WhatsAppIntegration {
                 '{ "type": "button", "sub_type": "url", "index": 0, "parameters": [' +
                 '{ "type": "text", "text": "' + otpVal + '" } ' + 
                 '] } ] } }';
-
-                
             }else{
-
                 List<String> headerParameters = new List<String>();
                 List<String> bodyParameters = new List<String>();
-    
                 if (waTemp.Total_Merge_Fields__c > 0 && !String.isBlank(headerMergeVal)) {
                     headerParameters.add('{ "type": "text", "text": "' + headerMergeVal + '" }');
                 }
-                
-        
                 if (mergeFieldValues != null && mergeFieldValues.size() > 0) {
                     for (Integer i = 0; i < mergeFieldValues.size(); i++) {
                         String bodyValue = mergeFieldValues[i];
@@ -190,14 +168,11 @@ public with sharing class WhatsAppIntegration {
                         }
                     }
                 }
-        
                 messageBody = '{ "messaging_product": "whatsapp", "to": "' + con.WhatsApp_Phone__c + '", "type": "template", "template": { "name": "' + waTemp.Name + '", "language": { "code": "' + waTemp.Language__c + '" }, "components": [ ';
-    
                 if (headerParameters.size() > 0) {
                     String headerParamsJson = '[' + String.join(headerParameters, ',') + ']';
                     messageBody += '{"type": "header", "parameters": ' + headerParamsJson + ' }';
                 }
-        
                 if (bodyParameters.size() > 0) {
                     if (headerParameters.size() > 0) {
                         messageBody += ', '; 
@@ -205,18 +180,13 @@ public with sharing class WhatsAppIntegration {
                     String bodyParamsJson = '[' + String.join(bodyParameters, ',') + ']';
                     messageBody += '{"type": "body", "parameters": ' + bodyParamsJson + ' }';
                 }
-
                 if (hasCopyCodeButton) {
                     String couponCode = generateCouponCode(); 
                     messageBody += '{ "type": "button", "sub_type": "COPY_CODE", "index": 0, "parameters": [{ "type": "coupon_code", "coupon_code": "' + couponCode + '" }] }';
                 }
-        
                 messageBody += '] } }';
             }
-           
-
             WhatsappIntegration.sendWhatsAppMessage(toPhone, messageBody, contactId, waTemp.Name, timeOfMessage , fileData);
-
         } catch (Exception e) {
             // ExceptionLog.exception(e.getMessage(), 'WhatsAppIntegration', 'snedTemplateMessage',currentTime);
             System.debug('Error in snedTemplateMessage: ' + e.getMessage() + '\n' + e + '\n Exception line no: ' + e.getLineNumber());
@@ -230,17 +200,13 @@ public with sharing class WhatsAppIntegration {
 
     public static String generateCouponCode() {
         List<Integer> possibleLengths = new List<Integer>{5, 8,10, 12, 15};
-    
         Integer randomLength = possibleLengths[(Integer)(Math.floor(Math.random() * possibleLengths.size()))];       
-    
         String characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         String couponCode = '';
-    
         for (Integer i = 0; i < randomLength; i++) {
             Integer randomIndex = (Integer)(Math.floor(Math.random() * characters.length()));
             couponCode += characters.substring(randomIndex, randomIndex + 1); 
         }
-    
         return couponCode; 
     }
     
@@ -263,7 +229,6 @@ public with sharing class WhatsAppIntegration {
             System.debug('Type: ' + messagetypeValue);
             String templateName = '';
             Id templateId = null;
-
             if(messagetypeValue == 'template'){
                 Map<String, Object> retrievedTemplateMap = (Map<String, Object>) parsedJson.get('template');
                 templateName = (String) retrievedTemplateMap.get('name');
@@ -279,15 +244,11 @@ public with sharing class WhatsAppIntegration {
             httpReq.setHeader('Content-Type', 'application/json');
             httpReq.setHeader('Authorization', 'Bearer '+ accessToken);
             httpReq.setBody(messageBody);
-            System.debug('request :: ' + httpReq);
             DateTime myDateTime = DateTime.now();
             String formattedDate = myDateTime.format(' d MMM yyyy');
-
             Http http = new Http();
             try {
                 HttpResponse response = http.send(httpReq);
-                System.debug('Response Body ==>' + response.getBody());
-                System.debug('Response Code ==>' + response.getStatusCode());
                 Integer statusCode = response.getStatusCode();                
                 if(response != null && statusCode == 200){
                     String reponseBody = response.getBody();
@@ -295,21 +256,6 @@ public with sharing class WhatsAppIntegration {
                     List<Object> messages = (List<Object>) jsonMap.get('messages');
                     Map<String, Object> firstMessage = (Map<String, Object>) messages[0];
                     String whatsAppMessageID = (String) firstMessage.get('id');
-                    System.debug('WhatsApp Message ID: ' + whatsAppMessageID);
-̋
-                    if (!Schema.sObjectType.WhatsApp_Chat__c.fields.Message_Type__c.isCreateable() ||
-                        !Schema.sObjectType.WhatsApp_Chat__c.fields.Message__c.isCreateable() ||
-                        !Schema.sObjectType.WhatsApp_Chat__c.fields.Time_of_Message__c.isCreateable() ||
-                        !Schema.sObjectType.WhatsApp_Chat__c.fields.Type_of_Message__c.isCreateable() ||
-                        !Schema.sObjectType.WhatsApp_Chat__c.fields.WhatsAppMessageID__c.isCreateable() ||
-                        !Schema.sObjectType.WhatsApp_Chat__c.fields.ContactId__c.isCreateable() ||
-                        !Schema.sObjectType.WhatsApp_Chat__c.fields.Related_Record_Id__c.isCreateable() ||
-                        !Schema.sObjectType.WhatsApp_Chat__c.fields.Date_of_WpMessage__c.isCreateable() ||
-                        !Schema.sObjectType.WhatsApp_Chat__c.fields.File_Data__c.isCreateable()) {
-
-                        System.debug('User does not have permission to set one or more required fields on WhatsApp_Chat__c.');
-                        return null; // Exit if any field is not createable
-                    }
 
                     WhatsApp_Chat__c whatsappMsg = new WhatsApp_Chat__c(
                         Message_Type__c = 'Outbound-Message',
@@ -326,8 +272,19 @@ public with sharing class WhatsAppIntegration {
                     if(templateName != '' && messagetypeValue == 'template'){
                         whatsappMsg.Template__c = templateId;
                     }
-                    if(WhatsApp_Chat__c.sObjectType.getDescribe().isCreateable()){
+                    if(WhatsApp_Chat__c.sObjectType.getDescribe().isCreateable() && 
+                        Schema.sObjectType.WhatsApp_Chat__c.fields.Message_Type__c.isCreateable() &&
+                        Schema.sObjectType.WhatsApp_Chat__c.fields.Message__c.isCreateable() &&
+                        Schema.sObjectType.WhatsApp_Chat__c.fields.Time_of_Message__c.isCreateable() &&
+                        Schema.sObjectType.WhatsApp_Chat__c.fields.Type_of_Message__c.isCreateable() &&
+                        Schema.sObjectType.WhatsApp_Chat__c.fields.WhatsAppMessageID__c.isCreateable() &&
+                        Schema.sObjectType.WhatsApp_Chat__c.fields.ContactId__c.isCreateable() &&
+                        Schema.sObjectType.WhatsApp_Chat__c.fields.Related_Record_Id__c.isCreateable() &&
+                        Schema.sObjectType.WhatsApp_Chat__c.fields.Date_of_WpMessage__c.isCreateable() &&
+                        Schema.sObjectType.WhatsApp_Chat__c.fields.File_Data__c.isCreateable()){
                         insert whatsappMsg;
+                    }else{
+                        System.debug('User does not have permission to set one or more required fields on WhatsApp_Chat__c.');
                     }
                     System.debug('whatsappMsg ==> ' + whatsappMsg);
                 }else{
@@ -347,7 +304,6 @@ public with sharing class WhatsAppIntegration {
     public static void sendNotificationForContact(Contact con) {
         try {
             CustomNotificationType cnType = [SELECT Id FROM CustomNotificationType WHERE DeveloperName = 'WhatsappNotification' WITH SECURITY_ENFORCED];
-            System.debug('custom notification===> '+cnType);
             
             // Id userId = Userinfo.getUserId();
             String messageContent = 'Message has not been sent to '+ con.Name;

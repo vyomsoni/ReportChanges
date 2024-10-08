@@ -5,23 +5,23 @@ public with sharing class SupportEmailService implements Messaging.InboundEmailH
         String emailBody = email.plainTextBody;
         ParsedEmailWrapper parsedEmail = parseEmail(emailBody);
 
-        if (!Schema.sObjectType.MVEX__Support_Case__c.isCreateable()) {
+        if (!Schema.sObjectType.Support_Case__c.isCreateable()) {
             System.debug('User does not have permission to create Support Cases.');
             return result; 
         }
         
-        if (!Schema.sObjectType.MVEX__Support_Case__c.fields.MVEX__Description__c.isUpdateable() ||
-            !Schema.sObjectType.MVEX__Support_Case__c.fields.MVEX__Name__c.isCreateable() ||
-            !Schema.sObjectType.MVEX__Support_Case__c.fields.MVEX__Email__c.isCreateable()) {
+        if (!Schema.sObjectType.Support_Case__c.fields.Description__c.isUpdateable() ||
+            !Schema.sObjectType.Support_Case__c.fields.Name__c.isCreateable() ||
+            !Schema.sObjectType.Support_Case__c.fields.Email__c.isCreateable()) {
             System.debug('User does not have permission to set required fields on Support Cases.');
             return result; 
         }
 
-        MVEX__Support_Case__c supportCase = new MVEX__Support_Case__c();
-        supportCase.MVEX__Name__c = parsedEmail.fromName; 
-        supportCase.MVEX__Email__c = parsedEmail.emailAddress; 
-        supportCase.MVEX__Subject__c = email.subject; 
-        supportCase.MVEX__Description__c = parsedEmail.body;
+        Support_Case__c supportCase = new Support_Case__c();
+        supportCase.Name__c = parsedEmail.fromName; 
+        supportCase.Email__c = parsedEmail.emailAddress; 
+        supportCase.Subject__c = email.subject; 
+        supportCase.Description__c = parsedEmail.body;
 
         try {
             insert supportCase;
